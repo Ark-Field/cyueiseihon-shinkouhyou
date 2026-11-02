@@ -66,7 +66,6 @@ def fetch_record_by_order(order_no):
 # ==========================================
 def generate_pdf_bytes(data):
     pdf_path = "temp_card.pdf"
-    # 上下左右の余白を少し狭めて、チェックリストまで1ページに収める
     doc = SimpleDocTemplate(
         pdf_path,
         pagesize=A4,
@@ -77,8 +76,7 @@ def generate_pdf_bytes(data):
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle('CardTitle', fontName=DEFAULT_FONT, fontSize=14, leading=18, alignment=1)
     normal_style = ParagraphStyle('CardNormal', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5)
-    bold_style = ParagraphStyle('CardBold', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5, fontName=DEFAULT_FONT)
-    chk_title_style = ParagraphStyle('ChkTitle', fontName=DEFAULT_FONT, fontSize=7.5, leading=9, textColor=colors.black)
+    bold_style = ParagraphStyle('CardBold', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5)
 
     story = []
 
@@ -114,7 +112,7 @@ def generate_pdf_bytes(data):
         [Paragraph("総頁数", bold_style), Paragraph(f"{data.get('field-82', '')} 頁", normal_style),
          Paragraph("印刷/製本数", bold_style), Paragraph(f"印:{data.get('field-3', '')}部 / 製:{data.get('field-4', '')}部", normal_style)],
     ]
-    info_table = Table(info_data, colWidths= [22*mm, 72*mm, 22*mm, 78*mm])
+    info_table = Table(info_data, colWidths=[22*mm, 72*mm, 22*mm, 78*mm])
     info_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
@@ -159,26 +157,22 @@ def generate_pdf_bytes(data):
     story.append(note_table)
     story.append(Spacer(1, 2 * mm))
 
-    # ==========================================
     # 5. チェックリスト項目（元画像に基づく追加）[cite: 2]
-    # ==========================================
     chk_header = Paragraph("<b>■ 工程チェックリスト</b>", bold_style)
     story.append(chk_header)
     story.append(Spacer(1, 1 * mm))
 
-    # 丁合・無線・三方・仕上げのチェック項目テーブル定義[cite: 2]
     checklist_data = [
-        # [セクション名, 検査項目, 作業日・備考欄]
-        [Paragraph("<b>【丁合】</b>[cite: 2]", chk_style := bold_style), Paragraph("・背丁、ページの確認[cite: 2]<br/>・書名・台数・本数の確認[cite: 2]<br/>・作業終了後余り丁・表紙の整理[cite: 2]", normal_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 2]", normal_style)],
-        [Paragraph("<b>【無線】</b>[cite: 2]", chk_style), Paragraph("・表紙(書名、巻数、天グル防止)の確認[cite: 2]<br/>・見返し・扉・口絵等の確認[cite: 2]<br/>・カット・アジロ・小口糊の確認[cite: 2]", normal_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 2]", normal_style)],
-        [Paragraph("<b>【三方】</b>[cite: 2]", chk_style), Paragraph("・寸法・落としの確認[cite: 2]<br/>・アメ・カブリ・字切れ・トンボ残りの確認[cite: 2]<br/>・折込・汚れの確認[cite: 2]", normal_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 2]", normal_style)],
-        [Paragraph("<b>【仕上げ】</b>[cite: 2]", chk_style), Paragraph("・背丁・ページの確認 / 付物等書名・ISBN・定価等の確認[cite: 2]<br/>・付物の印刷ヤレ確認 / 梱包の糊の具合・判子の状態の確認[cite: 2]<br/>・作業後の片付けの確認 / 製品の最終チェック[cite: 2]", normal_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 2]", normal_style)],
+        [Paragraph("<b>【丁合】</b>[cite: 2]", bold_style), Paragraph("・背丁、ページの確認[cite: 2]<br/>・書名・台数・本数の確認[cite: 2]<br/>・作業終了後余り丁・表紙の整理[cite: 2]", normal_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 2]", normal_style)],
+        [Paragraph("<b>【無線】</b>[cite: 2]", bold_style), Paragraph("・表紙(書名、巻数、天グル防止)の確認[cite: 2]<br/>・見返し・扉・口絵等の確認[cite: 2]<br/>・カット・アジロ・小口糊の確認[cite: 2]", normal_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 2]", normal_style)],
+        [Paragraph("<b>【三方】</b>[cite: 2]", bold_style), Paragraph("・寸法・落としの確認[cite: 2]<br/>・アメ・カブリ・字切れ・トンボ残りの確認[cite: 2]<br/>・折込・汚れの確認[cite: 2]", normal_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 2]", normal_style)],
+        [Paragraph("<b>【仕上げ】</b>[cite: 2]", bold_style), Paragraph("・背丁・ページの確認 / 付物等書名・ISBN・定価等の確認[cite: 2]<br/>・付物の印刷ヤレ確認 / 梱包の糊の具合・判子の状態の確認[cite: 2]<br/>・作業後の片付けの確認 / 製品の最終チェック[cite: 2]", normal_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 2]", normal_style)],
     ]
 
     chk_table = Table(checklist_data, colWidths=[22*mm, 112*mm, 60*mm])
     chk_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-        ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
+        ('BACKGROUND', (0,0), (-1,-1), colors.whitesmoke),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('PADDING', (0,0), (-1,-1), 2.5),
     ]))
