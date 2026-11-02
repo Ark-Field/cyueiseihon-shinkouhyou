@@ -15,7 +15,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 # ページ基本設定
 # ==========================================
 st.set_page_config(page_title="製本進行カード自動生成ツール", layout="centered")
-st.title("カード 製本進行カード自動生成ツール")
+st.title("🖨️ 製本進行カード自動生成ツール")
 
 # ==========================================
 # @pocket認証設定 (Secretsから取得)
@@ -62,21 +62,23 @@ def fetch_record_by_order(order_no):
     return None
 
 # ==========================================
-# PDF生成ロジック
+# PDF生成ロジック（チェックリスト統合版）
 # ==========================================
 def generate_pdf_bytes(data):
     pdf_path = "temp_card.pdf"
+    # 上下左右の余白を少し狭めて、チェックリストまで1ページに収める
     doc = SimpleDocTemplate(
         pdf_path,
         pagesize=A4,
-        rightMargin=10 * mm, leftMargin=10 * mm,
-        topMargin=10 * mm, bottomMargin=10 * mm
+        rightMargin=8 * mm, leftMargin=8 * mm,
+        topMargin=8 * mm, bottomMargin=8 * mm
     )
     
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle('CardTitle', fontName=DEFAULT_FONT, fontSize=16, leading=20, alignment=1, fontWidth='bold')
-    normal_style = ParagraphStyle('CardNormal', fontName=DEFAULT_FONT, fontSize=8.5, leading=11)
-    bold_style = ParagraphStyle('CardBold', fontName=DEFAULT_FONT, fontSize=8.5, leading=11, fontWidth='bold')
+    title_style = ParagraphStyle('CardTitle', fontName=DEFAULT_FONT, fontSize=14, leading=18, alignment=1)
+    normal_style = ParagraphStyle('CardNormal', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5)
+    bold_style = ParagraphStyle('CardBold', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5, fontName=DEFAULT_FONT)
+    chk_title_style = ParagraphStyle('ChkTitle', fontName=DEFAULT_FONT, fontSize=7.5, leading=9, textColor=colors.black)
 
     story = []
 
@@ -90,15 +92,16 @@ def generate_pdf_bytes(data):
             Paragraph(f"<b>受注番号:</b> {data.get('field-2', '')}", bold_style)
         ]
     ]
-    header_table = Table(header_data, colWidths=[40*mm, 30*mm, 30*mm, 60*mm, 30*mm])
+    header_table = Table(header_data, colWidths=[38*mm, 30*mm, 30*mm, 58*mm, 38*mm])
     header_table.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('BOX', (0,0), (-1,-1), 1, colors.black),
         ('INNERGRID', (0,0), (-1,-1), 0.5, colors.grey),
         ('BACKGROUND', (3,0), (3,0), colors.lightgrey),
+        ('PADDING', (0,0), (-1,-1), 3),
     ]))
     story.append(header_table)
-    story.append(Spacer(1, 3 * mm))
+    story.append(Spacer(1, 2 * mm))
 
     # 2. 基本情報
     info_data = [
@@ -111,13 +114,13 @@ def generate_pdf_bytes(data):
         [Paragraph("総頁数", bold_style), Paragraph(f"{data.get('field-82', '')} 頁", normal_style),
          Paragraph("印刷/製本数", bold_style), Paragraph(f"印:{data.get('field-3', '')}部 / 製:{data.get('field-4', '')}部", normal_style)],
     ]
-    info_table = Table(info_data, colWidths=[25*mm, 70*mm, 25*mm, 70*mm])
+    info_table = Table(info_data, colWidths= [22*mm, 72*mm, 22*mm, 78*mm])
     info_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
         ('BACKGROUND', (2,0), (2,-1), colors.whitesmoke),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 3),
+        ('PADDING', (0,0), (-1,-1), 2.5),
     ]))
     story.append(info_table)
     story.append(Spacer(1, 2 * mm))
@@ -131,13 +134,13 @@ def generate_pdf_bytes(data):
         [Paragraph("口絵 / 折図", bold_style), Paragraph(f"口絵:{data.get('field-65', '')}(丁:{data.get('field-66', '')}) / 折図:{data.get('field-69', '')}", normal_style),
          Paragraph("半製品預かり", bold_style), Paragraph(str(data.get('field-81', '')), normal_style)],
     ]
-    spec_table = Table(spec_data, colWidths=[25*mm, 70*mm, 25*mm, 70*mm])
+    spec_table = Table(spec_data, colWidths=[22*mm, 72*mm, 22*mm, 78*mm])
     spec_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
         ('BACKGROUND', (2,0), (2,-1), colors.whitesmoke),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 3),
+        ('PADDING', (0,0), (-1,-1), 2.5),
     ]))
     story.append(spec_table)
     story.append(Spacer(1, 2 * mm))
@@ -147,14 +150,40 @@ def generate_pdf_bytes(data):
         [Paragraph("特記事項 / 申し送り", bold_style)],
         [Paragraph(str(data.get('field-45', '特記事項なし')), normal_style)]
     ]
-    note_table = Table(note_data, colWidths=[190*mm])
+    note_table = Table(note_data, colWidths=[194*mm])
     note_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (0,0), colors.whitesmoke),
-        ('PADDING', (0,0), (-1,-1), 4),
+        ('PADDING', (0,0), (-1,-1), 3),
     ]))
     story.append(note_table)
-    
+    story.append(Spacer(1, 2 * mm))
+
+    # ==========================================
+    # 5. チェックリスト項目（元画像に基づく追加）[cite: 2]
+    # ==========================================
+    chk_header = Paragraph("<b>■ 工程チェックリスト</b>", bold_style)
+    story.append(chk_header)
+    story.append(Spacer(1, 1 * mm))
+
+    # 丁合・無線・三方・仕上げのチェック項目テーブル定義[cite: 2]
+    checklist_data = [
+        # [セクション名, 検査項目, 作業日・備考欄]
+        [Paragraph("<b>【丁合】</b>[cite: 2]", chk_style := bold_style), Paragraph("・背丁、ページの確認[cite: 2]<br/>・書名・台数・本数の確認[cite: 2]<br/>・作業終了後余り丁・表紙の整理[cite: 2]", normal_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 2]", normal_style)],
+        [Paragraph("<b>【無線】</b>[cite: 2]", chk_style), Paragraph("・表紙(書名、巻数、天グル防止)の確認[cite: 2]<br/>・見返し・扉・口絵等の確認[cite: 2]<br/>・カット・アジロ・小口糊の確認[cite: 2]", normal_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 2]", normal_style)],
+        [Paragraph("<b>【三方】</b>[cite: 2]", chk_style), Paragraph("・寸法・落としの確認[cite: 2]<br/>・アメ・カブリ・字切れ・トンボ残りの確認[cite: 2]<br/>・折込・汚れの確認[cite: 2]", normal_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 2]", normal_style)],
+        [Paragraph("<b>【仕上げ】</b>[cite: 2]", chk_style), Paragraph("・背丁・ページの確認 / 付物等書名・ISBN・定価等の確認[cite: 2]<br/>・付物の印刷ヤレ確認 / 梱包の糊の具合・判子の状態の確認[cite: 2]<br/>・作業後の片付けの確認 / 製品の最終チェック[cite: 2]", normal_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 2]", normal_style)],
+    ]
+
+    chk_table = Table(checklist_data, colWidths=[22*mm, 112*mm, 60*mm])
+    chk_table.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('PADDING', (0,0), (-1,-1), 2.5),
+    ]))
+    story.append(chk_table)
+
     doc.build(story)
     
     with open(pdf_path, "rb") as f:
@@ -167,9 +196,8 @@ def generate_pdf_bytes(data):
 query_params = st.query_params
 url_order_no = query_params.get("ord", None)
 
-st.info("💡 @pocketの受注番号から、製本進行カードのPDFをワンクリックで生成します。")
+st.info("💡 @pocketの受注番号から、チェックリスト付き製本進行カードのPDFをワンクリックで生成します[cite: 2]。")
 
-# 入力フォーム（手動でも検索可能）
 col1, col2 = st.columns([3, 1])
 with col1:
     input_order_no = st.text_input("受注番号を入力", value=url_order_no if url_order_no else "")
@@ -191,7 +219,7 @@ if url_order_no or search_btn:
             pdf_data = generate_pdf_bytes(record_data)
             
             st.download_button(
-                label="📥 製本進行カードPDFをダウンロード",
+                label="📥 チェックリスト付き製本進行カードPDFをダウンロード",
                 data=pdf_data,
                 file_name=f"製本進行カード_{target_ord}.pdf",
                 mime="application/pdf",
