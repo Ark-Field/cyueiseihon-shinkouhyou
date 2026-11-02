@@ -15,7 +15,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 # ページ基本設定
 # ==========================================
 st.set_page_config(page_title="製本帳票自動生成ツール（進行カード・面掛表）", layout="centered")
-st.title("🖨️ 製本帳票自動生成ツール（手書き欄広々・調整版）")
+st.title("🖨️ 製本帳票自動生成ツール（数字マス目2倍拡大版）")
 
 # ==========================================
 # @pocket認証設定 (Secretsから取得)
@@ -62,7 +62,7 @@ def fetch_record_by_order(order_no):
     return None
 
 # ==========================================
-# 1. 製本進行カード PDF生成（高さ1.5倍拡充版）
+# 1. 製本進行カード PDF生成（数字マス目2倍拡大版）
 # ==========================================
 def generate_progress_card_pdf(data):
     pdf_path = "temp_progress_card.pdf"
@@ -75,9 +75,9 @@ def generate_progress_card_pdf(data):
     
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle('CardTitle', fontName=DEFAULT_FONT, fontSize=12, leading=15, alignment=1)
-    normal_style = ParagraphStyle('CardNormal', fontName=DEFAULT_FONT, fontSize=7.5, leading=10)
-    bold_style = ParagraphStyle('CardBold', fontName=DEFAULT_FONT, fontSize=7.5, leading=10)
-    center_style = ParagraphStyle('CardCenter', fontName=DEFAULT_FONT, fontSize=6.5, leading=8, alignment=1)
+    normal_style = ParagraphStyle('CardNormal', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5)
+    bold_style = ParagraphStyle('CardBold', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5)
+    center_style = ParagraphStyle('CardCenter', fontName=DEFAULT_FONT, fontSize=7, leading=8, alignment=1)
     chk_content_style = ParagraphStyle('ChkContent', fontName=DEFAULT_FONT, fontSize=7, leading=11)
 
     story = []
@@ -103,7 +103,7 @@ def generate_progress_card_pdf(data):
     story.append(header_table)
     story.append(Spacer(1, 1.5 * mm))
 
-    # 基本情報（高さを約1.5倍の6mm〜7mmに拡大）
+    # 基本情報
     info_data = [
         [Paragraph("書名", bold_style), Paragraph(str(data.get('field-13', '')), normal_style),
          Paragraph("出版社", bold_style), Paragraph(str(data.get('field-8', '')), normal_style)],
@@ -117,7 +117,7 @@ def generate_progress_card_pdf(data):
     info_table = Table(info_data, colWidths=[22*mm, 72*mm, 22*mm, 78*mm], rowHeights=[6.5*mm, 6.5*mm, 6.5*mm, 6.5*mm])
     info_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-        ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
+        ('BACKGROUND', (0,0), (-1,-1), colors.whitesmoke),
         ('BACKGROUND', (2,0), (2,-1), colors.whitesmoke),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('PADDING', (0,0), (-1,-1), 3),
@@ -125,7 +125,7 @@ def generate_progress_card_pdf(data):
     story.append(info_table)
     story.append(Spacer(1, 1.5 * mm))
 
-    # 仕様情報（高さを約1.5倍に拡大）
+    # 仕様情報
     spec_data = [
         [Paragraph("仕上仕様", bold_style), Paragraph(f"{data.get('field-41', '')} / {data.get('field-42', '')}", normal_style),
          Paragraph("背固仕様", bold_style), Paragraph(str(data.get('field-43', '')), normal_style)],
@@ -145,28 +145,28 @@ def generate_progress_card_pdf(data):
     story.append(spec_table)
     story.append(Spacer(1, 1.5 * mm))
 
-    # 数字マス目（高さを1.5倍の7mmに調整）
+    # ★数字マス目（高さを2倍に拡大：約11mm〜12mm）
     row1_nums = [Paragraph(str(i), center_style) for i in range(1, 19)]
     row2_nums = [Paragraph(str(i), center_style) for i in range(19, 37)]
     row3_nums = [Paragraph(str(i), center_style) for i in range(37, 55)]
     
     grid_data = [row1_nums, row2_nums, row3_nums]
     col_widths = [10.7 * mm] * 18
-    num_grid_table = Table(grid_data, colWidths=col_widths, rowHeights=[7*mm, 7*mm, 7*mm])
+    num_grid_table = Table(grid_data, colWidths=col_widths, rowHeights=[11.5*mm, 11.5*mm, 11.5*mm])
     num_grid_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 1),
+        ('PADDING', (0,0), (-1,-1), 2),
         ('BACKGROUND', (0,0), (-1,-1), colors.white),
     ]))
     story.append(num_grid_table)
     story.append(Spacer(1, 1.5 * mm))
 
-    # 特記事項欄（高さを約1.5倍に拡大）
+    # 特記事項欄
     note_data = [
         [Paragraph("特記事項 / 申し送り欄（フリー手書きスペース）[cite: 3]", bold_style)],
-        [Paragraph(str(data.get('field-45', '特記事項なし')) + "<br/><br/><br/><br/>", normal_style)]
+        [Paragraph(str(data.get('field-45', '特記事項なし')) + "<br/><br/><br/>", normal_style)]
     ]
     note_table = Table(note_data, colWidths=[194*mm])
     note_table.setStyle(TableStyle([
@@ -177,7 +177,7 @@ def generate_progress_card_pdf(data):
     story.append(note_table)
     story.append(Spacer(1, 1.5 * mm))
 
-    # 工程チェックリスト（行高さを1.5倍の約17.5mmに拡大）[cite: 4]
+    # 工程チェックリスト（行高さ1.5倍）[cite: 4]
     chk_header = Paragraph("<b>■ 工程チェックリスト</b>[cite: 4]", bold_style)
     story.append(chk_header)
     story.append(Spacer(1, 1 * mm))
@@ -203,7 +203,7 @@ def generate_progress_card_pdf(data):
         return f.read()
 
 # ==========================================
-# 2. 面掛表・貼り込み表 PDF生成（高さ3倍広々版）
+# 2. 面掛表・貼り込み表 PDF生成
 # ==========================================
 def generate_menkake_pdf(data):
     pdf_path = "temp_menkake.pdf"
@@ -268,7 +268,7 @@ def generate_menkake_pdf(data):
     story.append(note_table)
     story.append(Spacer(1, 3 * mm))
 
-    # 面掛グリッド（高さ約22mm×4行で広々）[cite: 5]
+    # 面掛グリッド[cite: 5]
     grid_rows = []
     for r in range(4):
         row_cells = []
@@ -358,7 +358,7 @@ if input_order_no:
         # 1. 製本進行カード出力ボタン
         with col_btn1:
             st.markdown("#### 📋 製本進行カード")
-            st.write("罫線高さを1.5倍に広げたチェックリスト付き")
+            st.write("数字マス目を2倍に広げたチェックリスト付き")
             progress_pdf_bytes = generate_progress_card_pdf(record_data)
             st.download_button(
                 label="📥 進行カードPDFをダウンロード",
