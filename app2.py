@@ -15,7 +15,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 # ページ基本設定
 # ==========================================
 st.set_page_config(page_title="製本進行カード自動生成ツール", layout="centered")
-st.title("🖨️ 製本進行カード自動生成ツール（手書き欄対応版）")
+st.title("🖨️ 製本進行カード自動生成ツール（手書き欄広々バージョン）")
 
 # ==========================================
 # @pocket認証設定 (Secretsから取得)
@@ -62,7 +62,7 @@ def fetch_record_by_order(order_no):
     return None
 
 # ==========================================
-# PDF生成ロジック（手書きマス目・チェックリスト統合版）
+# PDF生成ロジック（手書きスペース拡充版）
 # ==========================================
 def generate_pdf_bytes(data):
     pdf_path = "temp_card.pdf"
@@ -75,9 +75,10 @@ def generate_pdf_bytes(data):
     
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle('CardTitle', fontName=DEFAULT_FONT, fontSize=13, leading=16, alignment=1)
-    normal_style = ParagraphStyle('CardNormal', fontName=DEFAULT_FONT, fontSize=7, leading=9)
-    bold_style = ParagraphStyle('CardBold', fontName=DEFAULT_FONT, fontSize=7, leading=9)
-    center_style = ParagraphStyle('CardCenter', fontName=DEFAULT_FONT, fontSize=6.5, leading=8, alignment=1)
+    normal_style = ParagraphStyle('CardNormal', fontName=DEFAULT_FONT, fontSize=7.5, leading=10)
+    bold_style = ParagraphStyle('CardBold', fontName=DEFAULT_FONT, fontSize=7.5, leading=10)
+    center_style = ParagraphStyle('CardCenter', fontName=DEFAULT_FONT, fontSize=7, leading=9, alignment=1)
+    chk_content_style = ParagraphStyle('ChkContent', fontName=DEFAULT_FONT, fontSize=7.5, leading=12)
 
     story = []
 
@@ -97,10 +98,10 @@ def generate_pdf_bytes(data):
         ('BOX', (0,0), (-1,-1), 1, colors.black),
         ('INNERGRID', (0,0), (-1,-1), 0.5, colors.grey),
         ('BACKGROUND', (3,0), (3,0), colors.lightgrey),
-        ('PADDING', (0,0), (-1,-1), 2.5),
+        ('PADDING', (0,0), (-1,-1), 3),
     ]))
     story.append(header_table)
-    story.append(Spacer(1, 1.5 * mm))
+    story.append(Spacer(1, 2 * mm))
 
     # 2. 基本情報
     info_data = [
@@ -119,10 +120,10 @@ def generate_pdf_bytes(data):
         ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
         ('BACKGROUND', (2,0), (2,-1), colors.whitesmoke),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 2),
+        ('PADDING', (0,0), (-1,-1), 2.5),
     ]))
     story.append(info_table)
-    story.append(Spacer(1, 1.5 * mm))
+    story.append(Spacer(1, 2 * mm))
 
     # 3. 仕様情報
     spec_data = [
@@ -139,22 +140,19 @@ def generate_pdf_bytes(data):
         ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
         ('BACKGROUND', (2,0), (2,-1), colors.whitesmoke),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 2),
+        ('PADDING', (0,0), (-1,-1), 2.5),
     ]))
     story.append(spec_table)
-    story.append(Spacer(1, 1.5 * mm))
+    story.append(Spacer(1, 2 * mm))
 
-    # ==========================================
-    # 4. 数字の連続マス目（1〜54の確認用グリッド）[cite: 3]
-    # ==========================================
+    # 4. 数字の連続マス目（少し高さを広げて書きやすく）
     row1_nums = [Paragraph(str(i), center_style) for i in range(1, 19)]
     row2_nums = [Paragraph(str(i), center_style) for i in range(19, 37)]
     row3_nums = [Paragraph(str(i), center_style) for i in range(37, 55)]
     
     grid_data = [row1_nums, row2_nums, row3_nums]
-    # A4幅に合わせた18マス分の列幅（1マス約10.7mm）
     col_widths = [10.7 * mm] * 18
-    num_grid_table = Table(grid_data, colWidths=col_widths)
+    num_grid_table = Table(grid_data, colWidths=col_widths, rowHeights=[6*mm, 6*mm, 6*mm])
     num_grid_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
@@ -163,40 +161,57 @@ def generate_pdf_bytes(data):
         ('BACKGROUND', (0,0), (-1,-1), colors.white),
     ]))
     story.append(num_grid_table)
-    story.append(Spacer(1, 1.5 * mm))
+    story.append(Spacer(1, 2 * mm))
 
-    # 5. 特記事項 ＆ 手書き記入用スペース
+    # 5. 特記事項 / 申し送りスペース（★高さを2.5倍ほどに拡充）
     note_data = [
-        [Paragraph("特記事項 / 申し送り（手書き・備考欄）[cite: 3]", bold_style)],
-        [Paragraph(str(data.get('field-45', '特記事項なし')) + "<br/><br/><br/>", normal_style)]
+        [Paragraph("特記事項 / 申し送り欄（フリー手書きスペース）[cite: 3]", bold_style)],
+        [Paragraph(str(data.get('field-45', '特記事項なし')) + "<br/><br/><br/><br/><br/>", normal_style)]
     ]
     note_table = Table(note_data, colWidths=[194*mm])
     note_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (0,0), colors.whitesmoke),
-        ('PADDING', (0,0), (-1,-1), 3),
+        ('PADDING', (0,0), (-1,-1), 4),
     ]))
     story.append(note_table)
-    story.append(Spacer(1, 1.5 * mm))
+    story.append(Spacer(1, 2 * mm))
 
-    # 6. 工程チェックリスト[cite: 4]
+    # 6. 工程チェックリスト（★行の高さを広げ、手書きの作業日・担当者印欄をゆったり配置）[cite: 4]
     chk_header = Paragraph("<b>■ 工程チェックリスト</b>[cite: 4]", bold_style)
     story.append(chk_header)
     story.append(Spacer(1, 1 * mm))
 
     checklist_data = [
-        [Paragraph("<b>【丁合】</b>[cite: 4]", bold_style), Paragraph("・背丁、ページの確認[cite: 4]<br/>・書名・台数・本数の確認[cite: 4]<br/>・作業終了後余り丁・表紙の整理[cite: 4]", normal_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 4]", normal_style)],
-        [Paragraph("<b>【無線】</b>[cite: 4]", bold_style), Paragraph("・表紙(書名、巻数、天グル防止)の確認[cite: 4]<br/>・見返し・扉・口絵等の確認[cite: 4]<br/>・カット・アジロ・小口糊の確認[cite: 4]", normal_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 4]", normal_style)],
-        [Paragraph("<b>【三方】</b>[cite: 4]", bold_style), Paragraph("・寸法・落としの確認[cite: 4]<br/>・アメ・カブリ・字切れ・トンボ残りの確認[cite: 4]<br/>・折込・汚れの確認[cite: 4]", normal_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 4]", normal_style)],
-        [Paragraph("<b>【仕上げ】</b>[cite: 4]", bold_style), Paragraph("・背丁・ページの確認 / 付物等書名・ISBN・定価等の確認[cite: 4]<br/>・付物の印刷ヤレ確認 / 梱包の糊の具合・判子の状態の確認[cite: 4]<br/>・作業後の片付けの確認 / 製品の最終チェック[cite: 4]", normal_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 4]", normal_style)],
+        [
+            Paragraph("<b>【丁合】</b>[cite: 4]", bold_style), 
+            Paragraph("・背丁、ページの確認[cite: 4]<br/>・書名・台数・本数の確認[cite: 4]<br/>・作業終了後余り丁・表紙の整理[cite: 4]", chk_content_style), 
+            Paragraph("作業日:  年 月 日<br/><br/>担当者印:[cite: 4]", chk_content_style)
+        ],
+        [
+            Paragraph("<b>【無線】</b>[cite: 4]", bold_style), 
+            Paragraph("・表紙(書名、巻数、天グル防止)の確認[cite: 4]<br/>・見返し・扉・口絵等の確認[cite: 4]<br/>・カット・アジロ・小口糊の確認[cite: 4]", chk_content_style), 
+            Paragraph("作業日:  年 月 日<br/><br/>担当者印:[cite: 4]", chk_content_style)
+        ],
+        [
+            Paragraph("<b>【三方】</b>[cite: 4]", bold_style), 
+            Paragraph("・寸法・落としの確認[cite: 4]<br/>・アメ・カブリ・字切れ・トンボ残りの確認[cite: 4]<br/>・折込・汚れの確認[cite: 4]", chk_content_style), 
+            Paragraph("作業日:  年 月 日<br/><br/>担当者印:[cite: 4]", chk_content_style)
+        ],
+        [
+            Paragraph("<b>【仕上げ】</b>[cite: 4]", bold_style), 
+            Paragraph("・背丁・ページの確認 / 付物等書名・ISBN・定価等の確認[cite: 4]<br/>・付物の印刷ヤレ確認 / 梱包の糊の具合・判子の状態の確認[cite: 4]<br/>・作業後の片付けの確認 / 製品の最終チェック[cite: 4]", chk_content_style), 
+            Paragraph("作業日:  年 月 日<br/><br/>担当者印:[cite: 4]", chk_content_style)
+        ],
     ]
 
-    chk_table = Table(checklist_data, colWidths=[22*mm, 112*mm, 60*mm])
+    # 各チェック項目の高さを約2倍〜2.5倍（約22mm×4行）に拡大
+    chk_table = Table(checklist_data, colWidths=[22*mm, 112*mm, 60*mm], rowHeights=[22*mm, 22*mm, 22*mm, 22*mm])
     chk_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (-1,-1), colors.whitesmoke),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 2),
+        ('PADDING', (0,0), (-1,-1), 4),
     ]))
     story.append(chk_table)
 
@@ -212,7 +227,7 @@ def generate_pdf_bytes(data):
 query_params = st.query_params
 url_order_no = query_params.get("ord", None)
 
-st.info("💡 @pocketの受注番号から、手書きマス目・チェックリスト付き製本進行カードのPDFを生成します[cite: 3, 4]。")
+st.info("💡 @pocketの受注番号から、手書きスペースを広々に設計した製本進行カードPDFを生成します[cite: 3, 4]。")
 
 col1, col2 = st.columns([3, 1])
 with col1:
@@ -235,7 +250,7 @@ if url_order_no or search_btn:
             pdf_data = generate_pdf_bytes(record_data)
             
             st.download_button(
-                label="📥 製本進行カードPDFをダウンロード",
+                label="📥 広々カードPDFをダウンロード",
                 data=pdf_data,
                 file_name=f"製本進行カード_{target_ord}.pdf",
                 mime="application/pdf",
