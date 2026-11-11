@@ -14,8 +14,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 # ==========================================
 # ページ基本設定
 # ==========================================
-st.set_page_config(page_title="（進行カード・面掛表）", layout="centered")
-st.title("🖨️ 進行カード・面掛表
+st.set_page_config(page_title="製本帳票自動生成ツール（進行カード・面掛表）", layout="centered")
+st.title("🖨️ 製本帳票自動生成ツール（進行カード・面掛表）")
 
 # ==========================================
 # @pocket認証設定 (Secretsから取得)
@@ -165,7 +165,7 @@ def generate_progress_card_pdf(data):
 
     # 特記事項欄
     note_data = [
-        [Paragraph("特記事項 / 申し送り欄（フリー手書きスペース）[cite: 3]", bold_style)],
+        [Paragraph("特記事項 / 申し送り欄（フリー手書きスペース）", bold_style)],
         [Paragraph(str(data.get('field-45', '特記事項なし')) + "<br/><br/><br/>", normal_style)]
     ]
     note_table = Table(note_data, colWidths=[194*mm])
@@ -177,16 +177,16 @@ def generate_progress_card_pdf(data):
     story.append(note_table)
     story.append(Spacer(1, 1.5 * mm))
 
-    # 工程チェックリスト（行高さ1.5倍）[cite: 4]
-    chk_header = Paragraph("<b>■ 工程チェックリスト</b>[cite: 4]", bold_style)
+    # 工程チェックリスト（行高さ1.5倍）
+    chk_header = Paragraph("<b>■ 工程チェックリスト</b>", bold_style)
     story.append(chk_header)
     story.append(Spacer(1, 1 * mm))
 
     checklist_data = [
-        [Paragraph("<b>【丁合】</b>[cite: 4]", bold_style), Paragraph("・背丁、ページの確認[cite: 4]<br/>・書名・台数・本数の確認[cite: 4]<br/>・作業終了後余り丁・表紙の整理[cite: 4]", chk_content_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 4]", chk_content_style)],
-        [Paragraph("<b>【無線】</b>[cite: 4]", bold_style), Paragraph("・表紙(書名、巻数、天グル防止)の確認[cite: 4]<br/>・見返し・扉・口絵等の確認[cite: 4]<br/>・カット・アジロ・小口糊の確認[cite: 4]", chk_content_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 4]", chk_content_style)],
-        [Paragraph("<b>【三方】</b>[cite: 4]", bold_style), Paragraph("・寸法・落としの確認[cite: 4]<br/>・アメ・カブリ・字切れ・トンボ残りの確認[cite: 4]<br/>・折込・汚れの確認[cite: 4]", chk_content_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 4]", chk_content_style)],
-        [Paragraph("<b>【仕上げ】</b>[cite: 4]", bold_style), Paragraph("・背丁・ページの確認 / 付物等書名・ISBN・定価等の確認[cite: 4]<br/>・付物の印刷ヤレ確認 / 梱包の糊の具合・判子の状態の確認[cite: 4]<br/>・作業後の片付けの確認 / 製品の最終チェック[cite: 4]", chk_content_style), Paragraph("作業日:  年 月 日<br/>担当者印:[cite: 4]", chk_content_style)],
+        [Paragraph("<b>【丁合】</b>", bold_style), Paragraph("・背丁、ページの確認<br/>・書名・台数・本数の確認<br/>・作業終了後余り丁・表紙の整理", chk_content_style), Paragraph("作業日:  年 月 日<br/>担当者印:", chk_content_style)],
+        [Paragraph("<b>【無線】</b>", bold_style), Paragraph("・表紙(書名、巻数、天グル防止)の確認<br/>・見返し・扉・口絵等の確認<br/>・カット・アジロ・小口糊の確認", chk_content_style), Paragraph("作業日:  年 月 日<br/>担当者印:", chk_content_style)],
+        [Paragraph("<b>【三方】</b>", bold_style), Paragraph("・寸法・落としの確認<br/>・アメ・カブリ・字切れ・トンボ残りの確認<br/>・折込・汚れの確認", chk_content_style), Paragraph("作業日:  年 月 日<br/>担当者印:", chk_content_style)],
+        [Paragraph("<b>【仕上げ】</b>", bold_style), Paragraph("・背丁・ページの確認 / 付物等書名・ISBN・定価等の確認<br/>・付物の印刷ヤレ確認 / 梱包の糊の具合・判子の状態の確認<br/>・作業後の片付けの確認 / 製品の最終チェック", chk_content_style), Paragraph("作業日:  年 月 日<br/>担当者印:", chk_content_style)],
     ]
 
     chk_table = Table(checklist_data, colWidths=[22*mm, 112*mm, 60*mm], rowHeights=[17.5*mm, 17.5*mm, 17.5*mm, 17.5*mm])
@@ -268,13 +268,13 @@ def generate_menkake_pdf(data):
     story.append(note_table)
     story.append(Spacer(1, 3 * mm))
 
-    # 面掛グリッド[cite: 5]
+    # 面掛グリッド
     grid_rows = []
     for r in range(4):
         row_cells = []
         for c in range(10):
             num = r * 10 + c + 1
-            row_cells.append(Paragraph(f"<b>{num}</b><br/><font size=6>折:   損:  </font>", center_style))
+            row_cells.append(Paragraph(f"<b>{num}</b><br/><font size=6>折:    損:  </font>", center_style))
         grid_rows.append(row_cells)
     
     menkake_grid = Table(grid_rows, colWidths=[19.4*mm]*10, rowHeights=[22*mm]*4)
@@ -288,8 +288,8 @@ def generate_menkake_pdf(data):
     
     story.append(PageBreak())
 
-    # 2ページ目: 貼り込み表[cite: 6]
-    story.append(Paragraph("<b>■ 貼り込み表</b>[cite: 6]", title_style))
+    # 2ページ目: 貼り込み表
+    story.append(Paragraph("<b>■ 貼り込み表</b>", title_style))
     story.append(Spacer(1, 2 * mm))
 
     pasting_info_data = [
@@ -312,7 +312,7 @@ def generate_menkake_pdf(data):
     
     for i in range(10):
         pasting_rows.append([
-            Paragraph(f"折 〜 折", normal_style),
+            Paragraph("折 〜 折", normal_style),
             Paragraph("", normal_style),
             Paragraph("", normal_style),
             Paragraph("", normal_style),
