@@ -14,8 +14,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 # ==========================================
 # ページ基本設定
 # ==========================================
-st.set_page_config(page_title="製本帳票自動生成ツール（進行カード・面掛表）", layout="centered")
-st.title("🖨️ 製本帳票自動生成ツール（数字マス目2倍拡大版）")
+st.set_page_config(page_title="（進行カード・面掛表）", layout="centered")
+st.title("🖨️ 進行カード・面掛表
 
 # ==========================================
 # @pocket認証設定 (Secretsから取得)
