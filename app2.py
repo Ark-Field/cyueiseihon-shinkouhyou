@@ -219,9 +219,9 @@ def generate_menkake_pdf(data):
     center_style = ParagraphStyle('Center', fontName=DEFAULT_FONT, fontSize=7.5, leading=10, alignment=1)
     right_style = ParagraphStyle('Right', fontName=DEFAULT_FONT, fontSize=7.5, leading=10, alignment=2)
 
-    # 面掛表（表2）の個別文字サイズスタイル（8Pt）
-    center_8pt = ParagraphStyle('Center8Pt', fontName=DEFAULT_FONT, fontSize=8, leading=10, alignment=1)
-    bold_center_8pt = ParagraphStyle('BoldCenter8Pt', fontName=DEFAULT_FONT, fontSize=8, leading=10, alignment=1)
+    # 面掛表（表2）の個別文字サイズスタイル（No・折損は 7Pt）
+    center_7pt = ParagraphStyle('Center7Pt', fontName=DEFAULT_FONT, fontSize=7, leading=9, alignment=1)
+    bold_center_7pt = ParagraphStyle('BoldCenter7Pt', fontName=DEFAULT_FONT, fontSize=7, leading=9, alignment=1)
 
     story = []
 
@@ -308,7 +308,7 @@ def generate_menkake_pdf(data):
     story.append(Spacer(1, 4 * mm))
 
     # ==========================================
-    # 下半部分：表2（16列：No・折損は8Ptに指定）
+    # 下半部分：表2（16列：No・折損は7Ptに設定）
     # ==========================================
     space5 = " " * 5
     work_date_str = f"<b>作業日:</b>{space5}年{space5}月{space5}日"
@@ -322,21 +322,21 @@ def generate_menkake_pdf(data):
     story.append(work_date_table)
     story.append(Spacer(1, 1 * mm))
 
-    # 16列ヘッダー（Noと折損は bold_center_8pt、担当・折メーターは bold_style または center_style）
+    # 16列ヘッダー（Noと折損は bold_center_7pt、担当・折メーターは normal_style / center_style）
     sub_headers = [
-        Paragraph("<b>No</b>", bold_center_8pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_8pt),
-        Paragraph("<b>No</b>", bold_center_8pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_8pt),
-        Paragraph("<b>No</b>", bold_center_8pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_8pt),
-        Paragraph("<b>No</b>", bold_center_8pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_8pt)
+        Paragraph("<b>No</b>", bold_center_7pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_7pt),
+        Paragraph("<b>No</b>", bold_center_7pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_7pt),
+        Paragraph("<b>No</b>", bold_center_7pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_7pt),
+        Paragraph("<b>No</b>", bold_center_7pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_7pt)
     ]
     sub_rows = [sub_headers]
     
     for r in range(10):
         sub_rows.append([
-            Paragraph(str(r + 1), center_8pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_8pt),
-            Paragraph(str(r + 11), center_8pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_8pt),
-            Paragraph(str(r + 21), center_8pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_8pt),
-            Paragraph(str(r + 31), center_8pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_8pt),
+            Paragraph(str(r + 1), center_7pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_7pt),
+            Paragraph(str(r + 11), center_7pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_7pt),
+            Paragraph(str(r + 21), center_7pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_7pt),
+            Paragraph(str(r + 31), center_7pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_7pt),
         ])
     
     sub_col_widths = [
@@ -404,7 +404,7 @@ def generate_menkake_pdf(data):
     ]
     pasting_rows2 = [pasting_headers2]
     
-    # 貼り込み箇所の列：5文字空白 折～ 5文字空白いれて 折
+    # 貼り込み箇所の列すべて：5文字空欄 折～ 5文字空欄 折
     pasting_cell_text = " " * 5 + "折〜" + " " * 5 + "折"
     
     for i in range(24):
