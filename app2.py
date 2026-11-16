@@ -368,7 +368,7 @@ def generate_menkake_pdf(data):
     story.append(note_table2)
 
     # ==========================================
-    # 【2ページ目】貼り込み表（修正ポイント）
+    # 【2ページ目】貼り込み表（修正ポイント：5文字分の幅を確実に出すため&nbsp;を12個に増加）
     # ==========================================
     story.append(PageBreak())
 
@@ -401,9 +401,9 @@ def generate_menkake_pdf(data):
     ]
     pasting_rows2 = [pasting_headers2]
     
-    # 連続スペースが潰れないようノーブレークスペース(&nbsp;)を5文字分使用
-    nbsp5 = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-    pasting_cell_text = f"{nbsp5}折〜{nbsp5}折"
+    # 5文字分の空欄（半角換算で広めに確保）
+    nbsp12 = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+    pasting_cell_text = f"{nbsp12}折〜{nbsp12}折"
     
     for i in range(24):
         pasting_rows2.append([
