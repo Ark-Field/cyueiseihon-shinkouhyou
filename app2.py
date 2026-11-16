@@ -293,7 +293,7 @@ def generate_menkake_pdf(data):
     story.append(pasting_table)
     story.append(Spacer(1, 1 * mm))
 
-    # 注意事項（高さ3センチ = 30mm、空白55文字幅）
+    # 注意事項（高さ3センチ = 30mm）
     note_blank = " " * 55
     note_data = [[Paragraph(f"<b>注意事項:</b> {note_blank}", normal_style)]]
     note_table = Table(note_data, colWidths=[194*mm], rowHeights=[30*mm])
@@ -307,7 +307,7 @@ def generate_menkake_pdf(data):
     story.append(Spacer(1, 4 * mm))
 
     # ==========================================
-    # 下半部分：表2（16列）
+    # 下半部分：表2（16列構成：No(3文字幅), 担当(2文字幅), 折メーター(3文字幅), 折損(2文字幅) × 4ブロック）
     # ==========================================
     space5 = " " * 5
     work_date_str = f"<b>作業日:</b>{space5}年{space5}月{space5}日"
@@ -337,11 +337,12 @@ def generate_menkake_pdf(data):
             Paragraph(str(r + 31), center_7pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_7pt),
         ])
     
+    # 16列の幅配分（No:約6mm, 担当:約13.5mm, 折メーター:約21mm, 折損:約9mm × 4 = 194mm）
     sub_col_widths = [
-        5*mm, 14.5*mm, 21*mm, 8*mm,
-        5*mm, 14.5*mm, 21*mm, 8*mm,
-        5*mm, 14.5*mm, 21*mm, 8*mm,
-        5*mm, 14.5*mm, 21*mm, 8*mm
+        6*mm, 13.5*mm, 21*mm, 9*mm,
+        6*mm, 13.5*mm, 21*mm, 9*mm,
+        6*mm, 13.5*mm, 21*mm, 9*mm,
+        6*mm, 13.5*mm, 21*mm, 9*mm
     ]
     sub_table = Table(
         sub_rows,
@@ -368,7 +369,7 @@ def generate_menkake_pdf(data):
     story.append(note_table2)
 
     # ==========================================
-    # 【2ページ目】貼り込み表（修正ポイント：5文字分の幅を確実に出すため&nbsp;を12個に増加）
+    # 【2ページ目】貼り込み表（貼り込み箇所：3.5センチ空けて折〜3.5センチ空けて折）
     # ==========================================
     story.append(PageBreak())
 
@@ -377,9 +378,9 @@ def generate_menkake_pdf(data):
 
     pasting_info_data = [
         [
-            Paragraph("<b>書名:</b>                ", normal_style),
+            Paragraph("<b>書名:</b>               ", normal_style),
             Paragraph(f"<b>部数:</b> {data.get('field-4', '500')} 部", normal_style),
-            Paragraph("<b>作業日:</b>   年  月  日", normal_style)
+            Paragraph("<b>作業日:</b>    年  月  日", normal_style)
         ]
     ]
     pasting_info_table = Table(pasting_info_data, colWidths=[94*mm, 50*mm, 50*mm], rowHeights=[6*mm])
@@ -401,9 +402,9 @@ def generate_menkake_pdf(data):
     ]
     pasting_rows2 = [pasting_headers2]
     
-    # 5文字分の空欄（半角換算で広めに確保）
-    nbsp12 = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-    pasting_cell_text = f"{nbsp12}折〜{nbsp12}折"
+    # 手書き用に3.5センチ分の余白スペース（&nbsp;を約18個）を空けて「折〜」「折」を配置
+    nbsp18 = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+    pasting_cell_text = f"{nbsp18}折〜{nbsp18}折"
     
     for i in range(24):
         pasting_rows2.append([
