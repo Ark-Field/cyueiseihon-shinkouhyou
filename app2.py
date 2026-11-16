@@ -219,7 +219,6 @@ def generate_menkake_pdf(data):
     center_style = ParagraphStyle('Center', fontName=DEFAULT_FONT, fontSize=7.5, leading=10, alignment=1)
     right_style = ParagraphStyle('Right', fontName=DEFAULT_FONT, fontSize=7.5, leading=10, alignment=2)
 
-    # 面掛表（表2）の個別文字サイズスタイル（No・折損は 7Pt）
     center_7pt = ParagraphStyle('Center7Pt', fontName=DEFAULT_FONT, fontSize=7, leading=9, alignment=1)
     bold_center_7pt = ParagraphStyle('BoldCenter7Pt', fontName=DEFAULT_FONT, fontSize=7, leading=9, alignment=1)
 
@@ -308,7 +307,7 @@ def generate_menkake_pdf(data):
     story.append(Spacer(1, 4 * mm))
 
     # ==========================================
-    # 下半部分：表2（16列：No・折損は7Ptに設定）
+    # 下半部分：表2（16列）
     # ==========================================
     space5 = " " * 5
     work_date_str = f"<b>作業日:</b>{space5}年{space5}月{space5}日"
@@ -322,7 +321,6 @@ def generate_menkake_pdf(data):
     story.append(work_date_table)
     story.append(Spacer(1, 1 * mm))
 
-    # 16列ヘッダー（Noと折損は bold_center_7pt、担当・折メーターは normal_style / center_style）
     sub_headers = [
         Paragraph("<b>No</b>", bold_center_7pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_7pt),
         Paragraph("<b>No</b>", bold_center_7pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_7pt),
@@ -360,7 +358,6 @@ def generate_menkake_pdf(data):
     story.append(sub_table)
     story.append(Spacer(1, 1 * mm))
 
-    # 下部注意事項（高さ3センチ = 30mm、空白55文字幅）
     note_data2 = [[Paragraph(f"<b>注意事項:</b> {note_blank}", normal_style)]]
     note_table2 = Table(note_data2, colWidths=[194*mm], rowHeights=[30*mm])
     note_table2.setStyle(TableStyle([
@@ -371,7 +368,7 @@ def generate_menkake_pdf(data):
     story.append(note_table2)
 
     # ==========================================
-    # 【2ページ目】貼り込み表
+    # 【2ページ目】貼り込み表（修正ポイント）
     # ==========================================
     story.append(PageBreak())
 
@@ -404,8 +401,9 @@ def generate_menkake_pdf(data):
     ]
     pasting_rows2 = [pasting_headers2]
     
-    # 貼り込み箇所の列すべて：5文字空欄 折～ 5文字空欄 折
-    pasting_cell_text = " " * 5 + "折〜" + " " * 5 + "折"
+    # 連続スペースが潰れないようノーブレークスペース(&nbsp;)を5文字分使用
+    nbsp5 = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+    pasting_cell_text = f"{nbsp5}折〜{nbsp5}折"
     
     for i in range(24):
         pasting_rows2.append([
