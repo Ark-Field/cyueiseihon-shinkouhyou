@@ -211,7 +211,7 @@ def generate_menkake_pdf(data):
         pdf_path,
         pagesize=A4,
         rightMargin=8 * mm, leftMargin=8 * mm,
-        topMargin=5 * mm, bottomMargin=5 * mm
+        topMargin=4 * mm, bottomMargin=4 * mm
     )
     
     styles = getSampleStyleSheet()
@@ -224,7 +224,7 @@ def generate_menkake_pdf(data):
     story = []
 
     # ==========================================
-    # 【1ページ目】面掛表 ＆ 表2
+    # 【1ページ目】面掛表 ＆ 表2（A4上下半分に収める構成）
     # ==========================================
     story.append(Paragraph("<b>面掛表</b>", title_style))
     story.append(Spacer(1, 1 * mm))
@@ -236,12 +236,12 @@ def generate_menkake_pdf(data):
             Paragraph(f"<b>ISBN:</b> {data.get('field-93', '')}", normal_style)
         ]
     ]
-    top_info_table = Table(top_info_data, colWidths=[97*mm, 97*mm], rowHeights=[5.5*mm])
+    top_info_table = Table(top_info_data, colWidths=[97*mm, 97*mm], rowHeights=[5*mm])
     top_info_table.setStyle(TableStyle([
         ('BOX', (0,0), (-1,-1), 0.5, colors.black),
         ('INNERGRID', (0,0), (-1,-1), 0.5, colors.grey),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 3),
+        ('PADDING', (0,0), (-1,-1), 2),
     ]))
     story.append(top_info_table)
     story.append(Spacer(1, 1 * mm))
@@ -249,11 +249,11 @@ def generate_menkake_pdf(data):
     # 2行目：書名（手書き部：空白55文字幅）
     title_blank = " " * 55
     book_title_data = [[Paragraph(f"<b>書名:</b> {title_blank}", normal_style)]]
-    book_title_table = Table(book_title_data, colWidths=[194*mm], rowHeights=[5.5*mm])
+    book_title_table = Table(book_title_data, colWidths=[194*mm], rowHeights=[5*mm])
     book_title_table.setStyle(TableStyle([
         ('BOX', (0,0), (-1,-1), 0.5, colors.black),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 3),
+        ('PADDING', (0,0), (-1,-1), 2),
     ]))
     story.append(book_title_table)
     story.append(Spacer(1, 1 * mm))
@@ -279,82 +279,94 @@ def generate_menkake_pdf(data):
 
     pasting_table = Table(
         pasting_rows,
-        colWidths=[38*mm, 24*mm, 38*mm, 24*mm, 60*mm],
-        rowHeights=[6*mm] * 11
+        colWidths=[38*mm, 22*mm, 38*mm, 22*mm, 74*mm],
+        rowHeights=[5*mm] * 11
     )
     pasting_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (0,0), colors.whitesmoke),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('PADDING', (0,0), (-1,-1), 2),
+        ('PADDING', (0,0), (-1,-1), 1),
     ]))
     story.append(pasting_table)
     story.append(Spacer(1, 1 * mm))
 
-    # 注意事項（手書き部：空白55文字幅）
+    # 注意事項（高さ3センチ = 30mm、空白55文字幅）
     note_blank = " " * 55
     note_data = [[Paragraph(f"<b>注意事項:</b> {note_blank}", normal_style)]]
-    note_table = Table(note_data, colWidths=[194*mm], rowHeights=[5.5*mm])
+    note_table = Table(note_data, colWidths=[194*mm], rowHeights=[30*mm])
     note_table.setStyle(TableStyle([
         ('BOX', (0,0), (-1,-1), 0.5, colors.black),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
         ('PADDING', (0,0), (-1,-1), 3),
     ]))
     story.append(note_table)
 
-    story.append(Spacer(1, 3 * mm))
+    story.append(Spacer(1, 4 * mm))
 
-    # 下半部分：表2
-    work_date_str = "<b>作業日:</b> " + " " * 5 + "年 " + " " * 5 + "月 " + " " * 5 + "日"
+    # ==========================================
+    # 下半部分：表2（16列）
+    # ==========================================
+    # 作業日： 空白5文字空けて 年 空白5文字空けて 月 空白5文字空けて 日
+    space5 = " " * 5
+    work_date_str = f"<b>作業日:</b>{space5}年{space5}月{space5}日"
     work_date_data = [[Paragraph(work_date_str, normal_style)]]
-    work_date_table = Table(work_date_data, colWidths=[194*mm], rowHeights=[5.5*mm])
+    work_date_table = Table(work_date_data, colWidths=[194*mm], rowHeights=[5*mm])
     work_date_table.setStyle(TableStyle([
         ('BOX', (0,0), (-1,-1), 0.5, colors.black),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 3),
+        ('PADDING', (0,0), (-1,-1), 2),
     ]))
     story.append(work_date_table)
     story.append(Spacer(1, 1 * mm))
 
+    # 16列ヘッダー（4セット × 4列）
     sub_headers = [
+        Paragraph("<b>No</b>", center_style), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", center_style),
         Paragraph("<b>No</b>", center_style), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", center_style),
         Paragraph("<b>No</b>", center_style), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", center_style),
         Paragraph("<b>No</b>", center_style), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", center_style)
     ]
     sub_rows = [sub_headers]
+    
+    # 1〜10, 11〜20, 21〜30, 31〜40 の連番（全10行）
     for r in range(10):
         sub_rows.append([
             Paragraph(str(r + 1), center_style), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", normal_style),
             Paragraph(str(r + 11), center_style), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", normal_style),
             Paragraph(str(r + 21), center_style), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", normal_style),
+            Paragraph(str(r + 31), center_style), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", normal_style),
         ])
     
-    sub_table_col_widths = [
-        6*mm, 18*mm, 30*mm, 10*mm,
-        6*mm, 18*mm, 30*mm, 10*mm,
-        6*mm, 18*mm, 30*mm, 10*mm
+    # 16列の幅設定（合計194mm）
+    sub_col_widths = [
+        5*mm, 14.5*mm, 21*mm, 8*mm,
+        5*mm, 14.5*mm, 21*mm, 8*mm,
+        5*mm, 14.5*mm, 21*mm, 8*mm,
+        5*mm, 14.5*mm, 21*mm, 8*mm
     ]
     sub_table = Table(
         sub_rows,
-        colWidths=sub_table_col_widths,
-        rowHeights=[6*mm] * 11
+        colWidths=sub_col_widths,
+        rowHeights=[4.8*mm] * 11
     )
     sub_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (0,0), colors.whitesmoke),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('PADDING', (0,0), (-1,-1), 2),
+        ('PADDING', (0,0), (-1,-1), 1),
     ]))
     story.append(sub_table)
     story.append(Spacer(1, 1 * mm))
 
+    # 下部注意事項（高さ3センチ = 30mm、空白55文字幅）
     note_data2 = [[Paragraph(f"<b>注意事項:</b> {note_blank}", normal_style)]]
-    note_table2 = Table(note_data2, colWidths=[194*mm], rowHeights=[5.5*mm])
+    note_table2 = Table(note_data2, colWidths=[194*mm], rowHeights=[30*mm])
     note_table2.setStyle(TableStyle([
         ('BOX', (0,0), (-1,-1), 0.5, colors.black),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
         ('PADDING', (0,0), (-1,-1), 3),
     ]))
     story.append(note_table2)
@@ -369,7 +381,7 @@ def generate_menkake_pdf(data):
 
     pasting_info_data = [
         [
-            Paragraph("<b>書名:</b>                ", normal_style),  # 手書き空欄
+            Paragraph("<b>書名:</b>                ", normal_style),
             Paragraph(f"<b>部数:</b> {data.get('field-4', '500')} 部", normal_style),
             Paragraph("<b>作業日:</b>   年  月  日", normal_style)
         ]
@@ -393,10 +405,8 @@ def generate_menkake_pdf(data):
     ]
     pasting_rows2 = [pasting_headers2]
     
-    # 7文字空白 折～ 7文字空白いれて 折
     pasting_cell_text = " " * 7 + "折〜" + " " * 7 + "折"
     
-    # 項目行1行 + 全24行 = 計25行
     for i in range(24):
         pasting_rows2.append([
             Paragraph(pasting_cell_text, normal_style),
