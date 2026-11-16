@@ -203,7 +203,7 @@ def generate_progress_card_pdf(data):
         return f.read()
 
 # ==========================================
-# 2. 面掛表 PDF生成（全訂正版：A4 1枚に上下配置）
+# 2. 面掛表・貼り込み表 PDF生成（2ページ構成）
 # ==========================================
 def generate_menkake_pdf(data):
     pdf_path = "temp_menkake.pdf"
@@ -219,14 +219,15 @@ def generate_menkake_pdf(data):
     normal_style = ParagraphStyle('Normal', fontName=DEFAULT_FONT, fontSize=7.5, leading=10)
     bold_style = ParagraphStyle('Bold', fontName=DEFAULT_FONT, fontSize=7.5, leading=10)
     center_style = ParagraphStyle('Center', fontName=DEFAULT_FONT, fontSize=7.5, leading=10, alignment=1)
+    right_style = ParagraphStyle('Right', fontName=DEFAULT_FONT, fontSize=7.5, leading=10, alignment=2)
 
     story = []
 
     # ==========================================
-    # 【上半部分】面掛表
+    # 【1ページ目】面掛表 ＆ 表2
     # ==========================================
     story.append(Paragraph("<b>面掛表</b>", title_style))
-    story.append(Spacer(1, 1.5 * mm))
+    story.append(Spacer(1, 1 * mm))
 
     # 1行目：受注番号 ＆ ISBN
     top_info_data = [
@@ -235,7 +236,7 @@ def generate_menkake_pdf(data):
             Paragraph(f"<b>ISBN:</b> {data.get('field-93', '')}", normal_style)
         ]
     ]
-    top_info_table = Table(top_info_data, colWidths=[97*mm, 97*mm], rowHeights=[6*mm])
+    top_info_table = Table(top_info_data, colWidths=[97*mm, 97*mm], rowHeights=[5.5*mm])
     top_info_table.setStyle(TableStyle([
         ('BOX', (0,0), (-1,-1), 0.5, colors.black),
         ('INNERGRID', (0,0), (-1,-1), 0.5, colors.grey),
@@ -243,19 +244,19 @@ def generate_menkake_pdf(data):
         ('PADDING', (0,0), (-1,-1), 3),
     ]))
     story.append(top_info_table)
-    story.append(Spacer(1, 1.5 * mm))
+    story.append(Spacer(1, 1 * mm))
 
     # 2行目：書名（手書き部：空白55文字幅）
     title_blank = " " * 55
     book_title_data = [[Paragraph(f"<b>書名:</b> {title_blank}", normal_style)]]
-    book_title_table = Table(book_title_data, colWidths=[194*mm], rowHeights=[6*mm])
+    book_title_table = Table(book_title_data, colWidths=[194*mm], rowHeights=[5.5*mm])
     book_title_table.setStyle(TableStyle([
         ('BOX', (0,0), (-1,-1), 0.5, colors.black),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('PADDING', (0,0), (-1,-1), 3),
     ]))
     story.append(book_title_table)
-    story.append(Spacer(1, 1.5 * mm))
+    story.append(Spacer(1, 1 * mm))
 
     # 面掛テーブル（項目行1行 + 全10行 = 計11行）
     pasting_headers = [
@@ -279,7 +280,7 @@ def generate_menkake_pdf(data):
     pasting_table = Table(
         pasting_rows,
         colWidths=[38*mm, 24*mm, 38*mm, 24*mm, 60*mm],
-        rowHeights=[7*mm] * 11
+        rowHeights=[6*mm] * 11
     )
     pasting_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
@@ -289,12 +290,12 @@ def generate_menkake_pdf(data):
         ('PADDING', (0,0), (-1,-1), 2),
     ]))
     story.append(pasting_table)
-    story.append(Spacer(1, 1.5 * mm))
+    story.append(Spacer(1, 1 * mm))
 
     # 注意事項（手書き部：空白55文字幅）
     note_blank = " " * 55
     note_data = [[Paragraph(f"<b>注意事項:</b> {note_blank}", normal_style)]]
-    note_table = Table(note_data, colWidths=[194*mm], rowHeights=[6*mm])
+    note_table = Table(note_data, colWidths=[194*mm], rowHeights=[5.5*mm])
     note_table.setStyle(TableStyle([
         ('BOX', (0,0), (-1,-1), 0.5, colors.black),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -302,24 +303,20 @@ def generate_menkake_pdf(data):
     ]))
     story.append(note_table)
 
-    story.append(Spacer(1, 5 * mm))
+    story.append(Spacer(1, 3 * mm))
 
-    # ==========================================
-    # 【下半部分】表2
-    # ==========================================
-    # 作業日行（手書き部：空白5文字空けて 年 月 日）
+    # 下半部分：表2
     work_date_str = "<b>作業日:</b> " + " " * 5 + "年 " + " " * 5 + "月 " + " " * 5 + "日"
     work_date_data = [[Paragraph(work_date_str, normal_style)]]
-    work_date_table = Table(work_date_data, colWidths=[194*mm], rowHeights=[6*mm])
+    work_date_table = Table(work_date_data, colWidths=[194*mm], rowHeights=[5.5*mm])
     work_date_table.setStyle(TableStyle([
         ('BOX', (0,0), (-1,-1), 0.5, colors.black),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('PADDING', (0,0), (-1,-1), 3),
     ]))
     story.append(work_date_table)
-    story.append(Spacer(1, 1.5 * mm))
+    story.append(Spacer(1, 1 * mm))
 
-    # メインテーブル2（12列、項目行1行 + 全10行 = 計11行）
     sub_headers = [
         Paragraph("<b>No</b>", center_style), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", center_style),
         Paragraph("<b>No</b>", center_style), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", center_style),
@@ -341,7 +338,7 @@ def generate_menkake_pdf(data):
     sub_table = Table(
         sub_rows,
         colWidths=sub_table_col_widths,
-        rowHeights=[7*mm] * 11
+        rowHeights=[6*mm] * 11
     )
     sub_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
@@ -351,17 +348,77 @@ def generate_menkake_pdf(data):
         ('PADDING', (0,0), (-1,-1), 2),
     ]))
     story.append(sub_table)
-    story.append(Spacer(1, 1.5 * mm))
+    story.append(Spacer(1, 1 * mm))
 
-    # 注意事項（手書き部：空白55文字幅）
     note_data2 = [[Paragraph(f"<b>注意事項:</b> {note_blank}", normal_style)]]
-    note_table2 = Table(note_data2, colWidths=[194*mm], rowHeights=[6*mm])
+    note_table2 = Table(note_data2, colWidths=[194*mm], rowHeights=[5.5*mm])
     note_table2.setStyle(TableStyle([
         ('BOX', (0,0), (-1,-1), 0.5, colors.black),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('PADDING', (0,0), (-1,-1), 3),
     ]))
     story.append(note_table2)
+
+    # ==========================================
+    # 【2ページ目】貼り込み表
+    # ==========================================
+    story.append(PageBreak())
+
+    story.append(Paragraph("<b>貼り込み表</b>", title_style))
+    story.append(Spacer(1, 2 * mm))
+
+    pasting_info_data = [
+        [
+            Paragraph("<b>書名:</b>                ", normal_style),  # 手書き空欄
+            Paragraph(f"<b>部数:</b> {data.get('field-4', '500')} 部", normal_style),
+            Paragraph("<b>作業日:</b>   年  月  日", normal_style)
+        ]
+    ]
+    pasting_info_table = Table(pasting_info_data, colWidths=[94*mm, 50*mm, 50*mm], rowHeights=[6*mm])
+    pasting_info_table.setStyle(TableStyle([
+        ('BOX', (0,0), (-1,-1), 0.5, colors.black),
+        ('BACKGROUND', (0,0), (-1,-1), colors.whitesmoke),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('PADDING', (0,0), (-1,-1), 3),
+    ]))
+    story.append(pasting_info_table)
+    story.append(Spacer(1, 2 * mm))
+
+    pasting_headers2 = [
+        Paragraph("<b>貼り込み箇所</b>", bold_style),
+        Paragraph("<b>本数</b>", bold_style),
+        Paragraph("<b>半端</b>", bold_style),
+        Paragraph("<b>ヤレ枚数</b>", bold_style),
+        Paragraph("<b>備考</b>", bold_style)
+    ]
+    pasting_rows2 = [pasting_headers2]
+    
+    # 7文字空白 折～ 7文字空白いれて 折
+    pasting_cell_text = " " * 7 + "折〜" + " " * 7 + "折"
+    
+    # 項目行1行 + 全24行 = 計25行
+    for i in range(24):
+        pasting_rows2.append([
+            Paragraph(pasting_cell_text, normal_style),
+            Paragraph("本", right_style),
+            Paragraph("本", right_style),
+            Paragraph("枚", right_style),
+            Paragraph("", normal_style),
+        ])
+
+    pasting_table2 = Table(
+        pasting_rows2, 
+        colWidths=[60*mm, 24.5*mm, 24.5*mm, 24.5*mm, 60.5*mm], 
+        rowHeights=[9.2*mm] * 25
+    )
+    pasting_table2.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ('BACKGROUND', (0,0), (0,0), colors.whitesmoke),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('ALIGN', (1,1), (3,-1), 'RIGHT'),
+        ('PADDING', (0,0), (-1,-1), 2),
+    ]))
+    story.append(pasting_table2)
 
     doc.build(story)
     with open(pdf_path, "rb") as f:
@@ -373,7 +430,7 @@ def generate_menkake_pdf(data):
 query_params = st.query_params
 url_order_no = query_params.get("ord", None)
 
-st.info("💡 @pocketの受注番号から、必要な帳票（製本進行カード または 面掛表）を選んでPDF出力できます。")
+st.info("💡 @pocketの受注番号から、必要な帳票（製本進行カード または 面掛表・貼り込み表）を選んでPDF出力できます。")
 
 input_order_no = st.text_input("受注番号を入力", value=url_order_no if url_order_no else "")
 
@@ -403,15 +460,15 @@ if input_order_no:
                 key="btn_progress"
             )
             
-        # 2. 面掛表出力ボタン
+        # 2. 面掛表・貼り込み表出力ボタン
         with col_btn2:
             st.markdown("#### 📋 面掛表・貼り込み表")
-            st.write("A4サイズに上半・下半を収めた面掛表")
+            st.write("面掛表（1頁目）＆ 貼り込み表（2頁目）の2頁構成")
             menkake_pdf_bytes = generate_menkake_pdf(record_data)
             st.download_button(
-                label="📥 面掛表PDFをダウンロード",
+                label="📥 面掛表・貼り込み表PDFをダウンロード",
                 data=menkake_pdf_bytes,
-                file_name=f"面掛表_{input_order_no}.pdf",
+                file_name=f"面掛表_貼り込み表_{input_order_no}.pdf",
                 mime="application/pdf",
                 type="primary",
                 key="btn_menkake"
