@@ -15,7 +15,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 # ページ基本設定
 # ==========================================
 st.set_page_config(page_title="製本帳票ツール（進行カード・面掛表）", layout="centered")
-st.title("🖨️ 製本帳票ツール（進行カード・面掛表）")
+st.title("🖨️ 製本帳票（進行カード・面掛表）")
 
 # ==========================================
 # @pocket認証設定 (Secretsから取得)
@@ -62,7 +62,7 @@ def fetch_record_by_order(order_no):
     return None
 
 # ==========================================
-# 1. 製本進行カード PDF生成（数字マス目2倍拡大版）
+# 1. 製本進行カード PDF生成
 # ==========================================
 def generate_progress_card_pdf(data):
     pdf_path = "temp_progress_card.pdf"
@@ -145,7 +145,7 @@ def generate_progress_card_pdf(data):
     story.append(spec_table)
     story.append(Spacer(1, 1.5 * mm))
 
-    # ★数字マス目（高さを2倍に拡大：約11mm〜12mm）
+    # 数字マス目
     row1_nums = [Paragraph(str(i), center_style) for i in range(1, 19)]
     row2_nums = [Paragraph(str(i), center_style) for i in range(19, 37)]
     row3_nums = [Paragraph(str(i), center_style) for i in range(37, 55)]
@@ -177,7 +177,7 @@ def generate_progress_card_pdf(data):
     story.append(note_table)
     story.append(Spacer(1, 1.5 * mm))
 
-    # 工程チェックリスト（行高さ1.5倍）
+    # 工程チェックリスト
     chk_header = Paragraph("<b>■ 工程チェックリスト</b>", bold_style)
     story.append(chk_header)
     story.append(Spacer(1, 1 * mm))
@@ -203,7 +203,7 @@ def generate_progress_card_pdf(data):
         return f.read()
 
 # ==========================================
-# 2. 面掛表・貼り込み表 PDF生成
+# 2. 面掛表・貼り込み表 PDF生成（修正版）
 # ==========================================
 def generate_menkake_pdf(data):
     pdf_path = "temp_menkake.pdf"
@@ -219,6 +219,7 @@ def generate_menkake_pdf(data):
     normal_style = ParagraphStyle('Normal', fontName=DEFAULT_FONT, fontSize=7.5, leading=10)
     bold_style = ParagraphStyle('Bold', fontName=DEFAULT_FONT, fontSize=7.5, leading=10)
     center_style = ParagraphStyle('Center', fontName=DEFAULT_FONT, fontSize=7.5, leading=10, alignment=1)
+    right_style = ParagraphStyle('Right', fontName=DEFAULT_FONT, fontSize=7.5, leading=10, alignment=2)
 
     story = []
 
@@ -288,14 +289,16 @@ def generate_menkake_pdf(data):
     
     story.append(PageBreak())
 
-    # 2ページ目: 貼り込み表
+    # 2ページ目: 貼り込み表（ご要望の通り修正）
     story.append(Paragraph("<b>■ 貼り込み表</b>", title_style))
     story.append(Spacer(1, 2 * mm))
 
     pasting_info_data = [
-        [Paragraph(f"<b>書名:</b> {data.get('field-13', '')}", normal_style),
-         Paragraph(f"<b>部数:</b> {data.get('field-4', '500')} 部", normal_style),
-         Paragraph("<b>作業日:</b>  年 月 日", normal_style)]
+        [
+            Paragraph("<b>書名:</b> ", normal_style),  # 手書きなので空欄
+            Paragraph(f"<b>部数:</b> {data.get('field-4', '500')} 部", normal_style),
+            Paragraph("<b>作業日:</b>    年   月   日", normal_style)
+        ]
     ]
     pasting_info_table = Table(pasting_info_data, colWidths=[94*mm, 50*mm, 50*mm])
     pasting_info_table.setStyle(TableStyle([
@@ -307,25 +310,38 @@ def generate_menkake_pdf(data):
     story.append(pasting_info_table)
     story.append(Spacer(1, 2 * mm))
 
-    pasting_headers = [Paragraph("<b>貼り込み箇所</b>", bold_style), Paragraph("<b>本数</b>", bold_style), Paragraph("<b>半端</b>", bold_style), Paragraph("<b>ヤレ枚数</b>", bold_style), Paragraph("<b>備考</b>", bold_style)]
+    pasting_headers = [
+        Paragraph("<b>貼り込み箇所</b>", bold_style),
+        Paragraph("<b>本数</b>", bold_style),
+        Paragraph("<b>半端</b>", bold_style),
+        Paragraph("<b>ヤレ枚数</b>", bold_style),
+        Paragraph("<b>備考</b>", bold_style)
+    ]
     pasting_rows = [pasting_headers]
     
-    for i in range(10):
+    # 項目行1行 + 全24行 = 計25行
+    for i in range(24):
         pasting_rows.append([
-            Paragraph("折 〜 折", normal_style),
-            Paragraph("", normal_style),
-            Paragraph("", normal_style),
-            Paragraph("", normal_style),
+            Paragraph("       折 〜       折", normal_style),  # 7文字空白 折〜 7文字空白 折
+            Paragraph("本", right_style),
+            Paragraph("本", right_style),
+            Paragraph("枚", right_style),
             Paragraph("", normal_style),
         ])
 
-    pasting_table = Table(pasting_rows, colWidths=[64*mm, 30*mm, 30*mm, 30*mm, 40*mm], rowHeights=[12*mm]*11)
+    # 列幅計194mm (貼り込み箇所:60mm, 本数:24.5mm, 半端:24.5mm, ヤレ枚数:24.5mm, 備考:60.5mm)
+    # A4最大高さを使用するためrowHeightsを10mm × 25行に設定
+    pasting_table = Table(
+        pasting_rows, 
+        colWidths=[60*mm, 24.5*mm, 24.5*mm, 24.5*mm, 60.5*mm], 
+        rowHeights=[10*mm] * 25
+    )
     pasting_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (0,0), colors.lightgrey),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('ALIGN', (1,1), (-1,-1), 'CENTER'),
-        ('PADDING', (0,0), (-1,-1), 4),
+        ('ALIGN', (1,1), (-1,-1), 'RIGHT'),
+        ('PADDING', (0,0), (-1,-1), 3),
     ]))
     story.append(pasting_table)
 
