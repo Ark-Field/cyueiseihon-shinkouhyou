@@ -73,7 +73,6 @@ def generate_progress_card_pdf(data):
         topMargin=6 * mm, bottomMargin=6 * mm
     )
     
-    styles = getSampleStyleSheet()
     title_style = ParagraphStyle('CardTitle', fontName=DEFAULT_FONT, fontSize=12, leading=15, alignment=1)
     normal_style = ParagraphStyle('CardNormal', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5)
     bold_style = ParagraphStyle('CardBold', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5)
@@ -214,17 +213,20 @@ def generate_menkake_pdf(data):
         topMargin=4 * mm, bottomMargin=4 * mm
     )
     
-    styles = getSampleStyleSheet()
     title_style = ParagraphStyle('Title16', fontName=DEFAULT_FONT, fontSize=16, leading=20, alignment=1)
     normal_style = ParagraphStyle('Normal', fontName=DEFAULT_FONT, fontSize=7.5, leading=10)
     bold_style = ParagraphStyle('Bold', fontName=DEFAULT_FONT, fontSize=7.5, leading=10)
     center_style = ParagraphStyle('Center', fontName=DEFAULT_FONT, fontSize=7.5, leading=10, alignment=1)
     right_style = ParagraphStyle('Right', fontName=DEFAULT_FONT, fontSize=7.5, leading=10, alignment=2)
 
+    # 面掛表（表2）の個別文字サイズスタイル（8Pt）
+    center_8pt = ParagraphStyle('Center8Pt', fontName=DEFAULT_FONT, fontSize=8, leading=10, alignment=1)
+    bold_center_8pt = ParagraphStyle('BoldCenter8Pt', fontName=DEFAULT_FONT, fontSize=8, leading=10, alignment=1)
+
     story = []
 
     # ==========================================
-    # 【1ページ目】面掛表 ＆ 表2（A4上下半分に収める構成）
+    # 【1ページ目】面掛表 ＆ 表2
     # ==========================================
     story.append(Paragraph("<b>面掛表</b>", title_style))
     story.append(Spacer(1, 1 * mm))
@@ -306,9 +308,8 @@ def generate_menkake_pdf(data):
     story.append(Spacer(1, 4 * mm))
 
     # ==========================================
-    # 下半部分：表2（16列）
+    # 下半部分：表2（16列：No・折損は8Ptに指定）
     # ==========================================
-    # 作業日： 空白5文字空けて 年 空白5文字空けて 月 空白5文字空けて 日
     space5 = " " * 5
     work_date_str = f"<b>作業日:</b>{space5}年{space5}月{space5}日"
     work_date_data = [[Paragraph(work_date_str, normal_style)]]
@@ -321,25 +322,23 @@ def generate_menkake_pdf(data):
     story.append(work_date_table)
     story.append(Spacer(1, 1 * mm))
 
-    # 16列ヘッダー（4セット × 4列）
+    # 16列ヘッダー（Noと折損は bold_center_8pt、担当・折メーターは bold_style または center_style）
     sub_headers = [
-        Paragraph("<b>No</b>", center_style), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", center_style),
-        Paragraph("<b>No</b>", center_style), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", center_style),
-        Paragraph("<b>No</b>", center_style), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", center_style),
-        Paragraph("<b>No</b>", center_style), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", center_style)
+        Paragraph("<b>No</b>", bold_center_8pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_8pt),
+        Paragraph("<b>No</b>", bold_center_8pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_8pt),
+        Paragraph("<b>No</b>", bold_center_8pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_8pt),
+        Paragraph("<b>No</b>", bold_center_8pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_8pt)
     ]
     sub_rows = [sub_headers]
     
-    # 1〜10, 11〜20, 21〜30, 31〜40 の連番（全10行）
     for r in range(10):
         sub_rows.append([
-            Paragraph(str(r + 1), center_style), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", normal_style),
-            Paragraph(str(r + 11), center_style), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", normal_style),
-            Paragraph(str(r + 21), center_style), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", normal_style),
-            Paragraph(str(r + 31), center_style), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", normal_style),
+            Paragraph(str(r + 1), center_8pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_8pt),
+            Paragraph(str(r + 11), center_8pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_8pt),
+            Paragraph(str(r + 21), center_8pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_8pt),
+            Paragraph(str(r + 31), center_8pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_8pt),
         ])
     
-    # 16列の幅設定（合計194mm）
     sub_col_widths = [
         5*mm, 14.5*mm, 21*mm, 8*mm,
         5*mm, 14.5*mm, 21*mm, 8*mm,
@@ -405,7 +404,8 @@ def generate_menkake_pdf(data):
     ]
     pasting_rows2 = [pasting_headers2]
     
-    pasting_cell_text = " " * 7 + "折〜" + " " * 7 + "折"
+    # 貼り込み箇所の列：5文字空白 折～ 5文字空白いれて 折
+    pasting_cell_text = " " * 5 + "折〜" + " " * 5 + "折"
     
     for i in range(24):
         pasting_rows2.append([
