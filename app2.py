@@ -73,13 +73,18 @@ def generate_progress_card_pdf(data):
         topMargin=6 * mm, bottomMargin=6 * mm
     )
     
-    title_style = ParagraphStyle('CardTitle', fontName=DEFAULT_FONT, fontSize=12, leading=15, alignment=1)
-    normal_style = ParagraphStyle('CardNormal', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5)
-    bold_style = ParagraphStyle('CardBold', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5)
-    center_style = ParagraphStyle('CardCenter', fontName=DEFAULT_FONT, fontSize=7, leading=8, alignment=1)
+    # タイトル 14PT
+    title_style = ParagraphStyle('CardTitle', fontName=DEFAULT_FONT, fontSize=14, leading=18, alignment=1)
     
-    # 仕様情報用の特例スタイル（仕上寸法・付物/見返し用：文字サイズ9.5PT）
-    spec_val_style = ParagraphStyle('SpecVal95', fontName=DEFAULT_FONT, fontSize=9.5, leading=12)
+    # ヘッダー・基本情報・仕様情報 8.5PT
+    normal_style = ParagraphStyle('CardNormal', fontName=DEFAULT_FONT, fontSize=8.5, leading=11)
+    bold_style = ParagraphStyle('CardBold', fontName=DEFAULT_FONT, fontSize=8.5, leading=11)
+    
+    # 数字マス目 8.5PT
+    center_style = ParagraphStyle('CardCenter', fontName=DEFAULT_FONT, fontSize=8.5, leading=10, alignment=1)
+    
+    # 仕様情報用の特例スタイル（仕上寸法・付物/見返し用：少し大きめ 10PT）
+    spec_val_style = ParagraphStyle('SpecVal10', fontName=DEFAULT_FONT, fontSize=10, leading=13)
 
     # 納品管理帳（予定/確定）部分の総頁数データ枠文字列生成
     p32_1 = data.get('field-30', '')
@@ -92,9 +97,9 @@ def generate_progress_card_pdf(data):
     story = []
 
     # ヘッダー
-    space_3 = "&nbsp;&nbsp;&nbsp;"
+    space_4 = "&nbsp;&nbsp;&nbsp;&nbsp;"
     ban_value = data.get('field-27', '')
-    ban_str = f"<b>版:</b>{space_3}{ban_value}"
+    ban_str = f"<b>版:</b>{space_4}{ban_value}"
 
     header_data = [
         [
@@ -198,8 +203,9 @@ def generate_progress_card_pdf(data):
     story.append(chk_header)
     story.append(Spacer(1, 1 * mm))
 
-    date_seal_str = f"<b>作業日:{space_3}年{space_3}月{space_3}日{space_3}■担当印&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b>"
-    # 文字サイズ7.5PT、太字対応のスタイル
+    # 空白4文字 "年" 空白4文字 "月" 空白4文字 "日"
+    space_4_chars = "&nbsp;&nbsp;&nbsp;&nbsp;"
+    date_seal_str = f"<b>作業日:{space_4_chars}年{space_4_chars}月{space_4_chars}日{space_4_chars}■担当印&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b>"
     chk_content_bold_style = ParagraphStyle('ChkContentBold75', fontName=DEFAULT_FONT, fontSize=7.5, leading=10)
 
     checklist_data = [
