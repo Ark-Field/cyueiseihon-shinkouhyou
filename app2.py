@@ -139,19 +139,21 @@ def generate_progress_card_pdf(data):
     story.append(info_table)
     story.append(Spacer(1, 1.5 * mm))
 
-    # 仕様情報（仕上寸法行の高さは15mm、付物は7mm、見返しは7mm）
+    # 仕様情報（仕上寸法行：15mm、付物行：7mm、見返し行：7mm、口絵/折図行：6.5mm、半製品預かり行：6.5mm）
     f_val = data.get('field-49', '')
     m_val = data.get('field-48', '')
+    e_val = f"口絵:{data.get('field-65', '')}(丁:{data.get('field-66', '')}) / 折図:{data.get('field-69', '')}"
+    h_val = str(data.get('field-81', ''))
 
     spec_data = [
         [Paragraph("仕上仕様", bold_style), Paragraph(f"{data.get('field-41', '')} / {data.get('field-42', '')}", normal_style),
          Paragraph("背固仕様", bold_style), Paragraph(str(data.get('field-43', '')), normal_style)],
         [Paragraph("仕上寸法", bold_style), Paragraph(f"天地:{data.get('field-24', '')} / 左右:{data.get('field-25', '')} ({data.get('field-44', '')})", spec_val_style),
          Paragraph("付物", bold_style), Paragraph(f"□ {f_val}", spec_val_style)],
-        [Paragraph("口絵 / 折図", bold_style), Paragraph(f"口絵:{data.get('field-65', '')}(丁:{data.get('field-66', '')}) / 折図:{data.get('field-69', '')}", normal_style),
+        [Paragraph("口絵 / 折図", bold_style), Paragraph(e_val, normal_style),
          Paragraph("見返し", bold_style), Paragraph(f"□ {m_val}", spec_val_style)],
-        [Paragraph("半製品預かり", bold_style), Paragraph(str(data.get('field-81', '')), normal_style),
-         Paragraph("", bold_style), Paragraph("", normal_style)],
+        [Paragraph("半製品預かり", bold_style), Paragraph(h_val, normal_style),
+         Paragraph("", bold_style), Paragraph("", bold_style)],
     ]
     spec_table = Table(spec_data, colWidths=[22*mm, 72*mm, 22*mm, 78*mm], rowHeights=[6.5*mm, 15*mm, 7*mm, 6.5*mm])
     spec_table.setStyle(TableStyle([
