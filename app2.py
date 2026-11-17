@@ -91,7 +91,7 @@ def generate_progress_card_pdf(data):
 
     story = []
 
-    # ヘッダー（版 field-27 を納期の手前に追加、合計6列構成に変更）
+    # ヘッダー
     space_3 = "&nbsp;&nbsp;&nbsp;"
     ban_value = data.get('field-27', '')
     ban_str = f"<b>版:</b>{space_3}{ban_value}"
@@ -106,7 +106,6 @@ def generate_progress_card_pdf(data):
             Paragraph(f"<b>受注番号:</b> {data.get('field-2', '')}", bold_style)
         ]
     ]
-    # 列幅を6分割に調整（計194mm）
     header_table = Table(header_data, colWidths=[24*mm, 30*mm, 25*mm, 25*mm, 52*mm, 38*mm], rowHeights=[9*mm])
     header_table.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -194,34 +193,35 @@ def generate_progress_card_pdf(data):
     story.append(note_table)
     story.append(Spacer(1, 1.5 * mm))
 
-    # ■工程チェックリスト（全12行、行高さ7mm、各項目3行に分割）
+    # ■工程チェックリスト（全12行、行高さ9mm、文字サイズ7.5PT＆太字）
     chk_header = Paragraph("<b>■ 工程チェックリスト</b>", bold_style)
     story.append(chk_header)
     story.append(Spacer(1, 1 * mm))
 
-    date_seal_str = f"作業日:{space_3}年{space_3}月{space_3}日{space_3}■担当印&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-    chk_content_style_7mm = ParagraphStyle('ChkContent7', fontName=DEFAULT_FONT, fontSize=7, leading=8.5)
+    date_seal_str = f"<b>作業日:{space_3}年{space_3}月{space_3}日{space_3}■担当印&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b>"
+    # 文字サイズ7.5PT、太字対応のスタイル
+    chk_content_bold_style = ParagraphStyle('ChkContentBold75', fontName=DEFAULT_FONT, fontSize=7.5, leading=10)
 
     checklist_data = [
         # 丁合 (3行)
-        [Paragraph("<b>【丁合】</b>", bold_style), Paragraph("・背丁、ページの確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
-        [Paragraph("", bold_style), Paragraph("・書名・台数・本数の確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
-        [Paragraph("", bold_style), Paragraph("・作業終了後余り丁・表紙の整理", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
+        [Paragraph("<b>【丁合】</b>", bold_style), Paragraph("<b>・背丁、ページの確認</b>", chk_content_bold_style), Paragraph(date_seal_str, chk_content_bold_style)],
+        [Paragraph("", bold_style), Paragraph("<b>・書名・台数・本数の確認</b>", chk_content_bold_style), Paragraph(date_seal_str, chk_content_bold_style)],
+        [Paragraph("", bold_style), Paragraph("<b>・作業終了後余り丁・表紙の整理</b>", chk_content_bold_style), Paragraph(date_seal_str, chk_content_bold_style)],
         # 無線 (3行)
-        [Paragraph("<b>【無線】</b>", bold_style), Paragraph("・表紙(書名、巻数、天グル防止)の確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
-        [Paragraph("", bold_style), Paragraph("・見返し・扉・口絵等の確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
-        [Paragraph("", bold_style), Paragraph("・カット・アジロ・小口糊の確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
-        # 二方 / 三方 (3行)
-        [Paragraph("<b>【三方】</b>", bold_style), Paragraph("・寸法・落としの確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
-        [Paragraph("", bold_style), Paragraph("・アメ・カブリ・字切れ・トンボ残りの確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
-        [Paragraph("", bold_style), Paragraph("・折込・汚れの確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
+        [Paragraph("<b>【無線】</b>", bold_style), Paragraph("<b>・表紙(書名、巻数、天グル防止)の確認</b>", chk_content_bold_style), Paragraph(date_seal_str, chk_content_bold_style)],
+        [Paragraph("", bold_style), Paragraph("<b>・見返し・扉・口絵等の確認</b>", chk_content_bold_style), Paragraph(date_seal_str, chk_content_bold_style)],
+        [Paragraph("", bold_style), Paragraph("<b>・カット・アジロ・小口糊の確認</b>", chk_content_bold_style), Paragraph(date_seal_str, chk_content_bold_style)],
+        # 三方 (3行)
+        [Paragraph("<b>【三方】</b>", bold_style), Paragraph("<b>・寸法・落としの確認</b>", chk_content_bold_style), Paragraph(date_seal_str, chk_content_bold_style)],
+        [Paragraph("", bold_style), Paragraph("<b>・アメ・カブリ・字切れ・トンボ残りの確認</b>", chk_content_bold_style), Paragraph(date_seal_str, chk_content_bold_style)],
+        [Paragraph("", bold_style), Paragraph("<b>・折込・汚れの確認</b>", chk_content_bold_style), Paragraph(date_seal_str, chk_content_bold_style)],
         # 仕上げ (3行)
-        [Paragraph("<b>【仕上げ】</b>", bold_style), Paragraph("・背丁・ページの確認 / 付物等書名・ISBN・定価等の確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
-        [Paragraph("", bold_style), Paragraph("・付物の印刷ヤレ確認 / 梱包の糊の具合・判子の状態の確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
-        [Paragraph("", bold_style), Paragraph("・作業後の片付けの確認 / 製品の最終チェック", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
+        [Paragraph("<b>【仕上げ】</b>", bold_style), Paragraph("<b>・背丁・ページの確認 / 付物等書名・ISBN・定価等の確認</b>", chk_content_bold_style), Paragraph(date_seal_str, chk_content_bold_style)],
+        [Paragraph("", bold_style), Paragraph("<b>・付物の印刷ヤレ確認 / 梱包の糊の具合・判子の状態の確認</b>", chk_content_bold_style), Paragraph(date_seal_str, chk_content_bold_style)],
+        [Paragraph("", bold_style), Paragraph("<b>・作業後の片付けの確認 / 製品の最終チェック</b>", chk_content_bold_style), Paragraph(date_seal_str, chk_content_bold_style)],
     ]
 
-    chk_table = Table(checklist_data, colWidths=[22*mm, 112*mm, 60*mm], rowHeights=[7*mm] * 12)
+    chk_table = Table(checklist_data, colWidths=[22*mm, 112*mm, 60*mm], rowHeights=[9*mm] * 12)
     chk_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
