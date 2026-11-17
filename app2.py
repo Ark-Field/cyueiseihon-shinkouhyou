@@ -82,7 +82,6 @@ def generate_progress_card_pdf(data):
     spec_val_style = ParagraphStyle('SpecVal95', fontName=DEFAULT_FONT, fontSize=9.5, leading=12)
 
     # 納品管理帳（予定/確定）部分の総頁数データ枠文字列生成
-    # 32P/field-30 16P/field-31 8P/field-32 4P/field-33 32P/field-34
     p32_1 = data.get('field-30', '')
     p16 = data.get('field-31', '')
     p8 = data.get('field-32', '')
@@ -92,9 +91,14 @@ def generate_progress_card_pdf(data):
 
     story = []
 
-    # ヘッダー
+    # ヘッダー（版 field-27 を納期の手前に追加、合計6列構成に変更）
+    space_3 = "&nbsp;&nbsp;&nbsp;"
+    ban_value = data.get('field-27', '')
+    ban_str = f"<b>版:</b>{space_3}{ban_value}"
+
     header_data = [
         [
+            Paragraph(ban_str, normal_style),
             Paragraph(f"<b>納期:</b> {data.get('field-52', '')}", normal_style),
             Paragraph(f"<b>見本:</b> {data.get('field-54', '')}", normal_style),
             Paragraph(f"<b>配本:</b> {data.get('field-56', '')}", normal_style),
@@ -102,12 +106,13 @@ def generate_progress_card_pdf(data):
             Paragraph(f"<b>受注番号:</b> {data.get('field-2', '')}", bold_style)
         ]
     ]
-    header_table = Table(header_data, colWidths=[38*mm, 30*mm, 30*mm, 58*mm, 38*mm], rowHeights=[9*mm])
+    # 列幅を6分割に調整（計194mm）
+    header_table = Table(header_data, colWidths=[24*mm, 30*mm, 25*mm, 25*mm, 52*mm, 38*mm], rowHeights=[9*mm])
     header_table.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('BOX', (0,0), (-1,-1), 1, colors.black),
         ('INNERGRID', (0,0), (-1,-1), 0.5, colors.grey),
-        ('BACKGROUND', (3,0), (3,0), colors.lightgrey),
+        ('BACKGROUND', (4,0), (4,0), colors.lightgrey),
         ('PADDING', (0,0), (-1,-1), 3),
     ]))
     story.append(header_table)
@@ -194,15 +199,14 @@ def generate_progress_card_pdf(data):
     story.append(chk_header)
     story.append(Spacer(1, 1 * mm))
 
-    space_3 = "&nbsp;&nbsp;&nbsp;"
     date_seal_str = f"作業日:{space_3}年{space_3}月{space_3}日{space_3}■担当印&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
     chk_content_style_7mm = ParagraphStyle('ChkContent7', fontName=DEFAULT_FONT, fontSize=7, leading=8.5)
 
     checklist_data = [
         # 丁合 (3行)
-        [Paragraph("<b>【丁合】</b>", bold_style), Paragraph("・背丁、ページの確認 / 書名・台数・本数の確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
+        [Paragraph("<b>【丁合】</b>", bold_style), Paragraph("・背丁、ページの確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
+        [Paragraph("", bold_style), Paragraph("・書名・台数・本数の確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
         [Paragraph("", bold_style), Paragraph("・作業終了後余り丁・表紙の整理", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
-        [Paragraph("", bold_style), Paragraph("", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
         # 無線 (3行)
         [Paragraph("<b>【無線】</b>", bold_style), Paragraph("・表紙(書名、巻数、天グル防止)の確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
         [Paragraph("", bold_style), Paragraph("・見返し・扉・口絵等の確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
@@ -223,7 +227,6 @@ def generate_progress_card_pdf(data):
         ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('PADDING', (0,0), (-1,-1), 1),
-        # 丁合、無線、三方、仕上げの項目行セルを縦方向結合
         ('SPAN', (0,0), (0,2)),
         ('SPAN', (0,3), (0,5)),
         ('SPAN', (0,6), (0,8)),
@@ -264,7 +267,6 @@ def generate_menkake_pdf(data):
     story.append(Paragraph("<b>面掛表</b>", title_style))
     story.append(Spacer(1, 1 * mm))
 
-    # 1行目：受注番号 ＆ ISBN
     top_info_data = [
         [
             Paragraph(f"<b>受注番号:</b> {data.get('field-2', '')}", normal_style),
@@ -281,7 +283,6 @@ def generate_menkake_pdf(data):
     story.append(top_info_table)
     story.append(Spacer(1, 1 * mm))
 
-    # 2行目：書名（手書き部：空白55文字幅）
     title_blank = " " * 55
     book_title_data = [[Paragraph(f"<b>書名:</b> {title_blank}", normal_style)]]
     book_title_table = Table(book_title_data, colWidths=[194*mm], rowHeights=[5*mm])
@@ -293,7 +294,6 @@ def generate_menkake_pdf(data):
     story.append(book_title_table)
     story.append(Spacer(1, 1 * mm))
 
-    # 面掛テーブル（項目行1行 + 全10行 = 計11行）
     pasting_headers = [
         Paragraph("<b>面掛</b>", bold_style),
         Paragraph("<b>摘要</b>", bold_style),
@@ -327,7 +327,6 @@ def generate_menkake_pdf(data):
     story.append(pasting_table)
     story.append(Spacer(1, 1 * mm))
 
-    # 注意事項（高さ3センチ = 30mm）
     note_blank = " " * 55
     note_data = [[Paragraph(f"<b>注意事項:</b> {note_blank}", normal_style)]]
     note_table = Table(note_data, colWidths=[194*mm], rowHeights=[30*mm])
@@ -340,9 +339,6 @@ def generate_menkake_pdf(data):
 
     story.append(Spacer(1, 4 * mm))
 
-    # ==========================================
-    # 下半部分：表2（16列構成）
-    # ==========================================
     space_25cm = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
     work_date_str = f"<b>作業日:</b>{space_25cm}年{space_25cm}月{space_25cm}日"
 
@@ -490,7 +486,6 @@ if input_order_no:
         
         col_btn1, col_btn2 = st.columns(2)
         
-        # 1. 製本進行カード出力ボタン
         with col_btn1:
             st.markdown("#### 📋 製本進行カード")
             st.write("数字マス目を広げたチェックリスト付き")
@@ -504,7 +499,6 @@ if input_order_no:
                 key="btn_progress"
             )
             
-        # 2. 面掛表・貼り込み表出力ボタン
         with col_btn2:
             st.markdown("#### 📋 面掛表・貼り込み表")
             st.write("面掛表（1頁目）＆ 貼り込み表（2頁目）の2頁構成")
