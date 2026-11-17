@@ -77,7 +77,18 @@ def generate_progress_card_pdf(data):
     normal_style = ParagraphStyle('CardNormal', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5)
     bold_style = ParagraphStyle('CardBold', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5)
     center_style = ParagraphStyle('CardCenter', fontName=DEFAULT_FONT, fontSize=7, leading=8, alignment=1)
-    chk_content_style = ParagraphStyle('ChkContent', fontName=DEFAULT_FONT, fontSize=7, leading=11)
+    
+    # 仕様情報用の特例スタイル（仕上寸法・付物/見返し用：文字サイズ9.5PT）
+    spec_val_style = ParagraphStyle('SpecVal95', fontName=DEFAULT_FONT, fontSize=9.5, leading=12)
+
+    # 納品管理帳（予定/確定）部分の総頁数データ枠文字列生成
+    # 32P/field-30 16P/field-31 8P/field-32 4P/field-33 32P/field-34
+    p32_1 = data.get('field-30', '')
+    p16 = data.get('field-31', '')
+    p8 = data.get('field-32', '')
+    p4 = data.get('field-33', '')
+    p32_2 = data.get('field-34', '')
+    total_pages_str = f"32P:{p32_1} / 16P:{p16} / 8P:{p8} / 4P:{p4} / 32P:{p32_2}"
 
     story = []
 
@@ -110,7 +121,7 @@ def generate_progress_card_pdf(data):
          Paragraph("印刷所", bold_style), Paragraph(str(data.get('field-14', '')), normal_style)],
         [Paragraph("種別/刷数", bold_style), Paragraph(f"{data.get('field-19', '')} / {data.get('field-28', '')}刷 (回:{data.get('field-29', '')})", normal_style),
          Paragraph("定価", bold_style), Paragraph(f"¥{data.get('field-20', '')}", normal_style)],
-        [Paragraph("総頁数", bold_style), Paragraph(f"{data.get('field-82', '')} 頁", normal_style),
+        [Paragraph("総頁数", bold_style), Paragraph(total_pages_str, normal_style),
          Paragraph("印刷/製本数", bold_style), Paragraph(f"印:{data.get('field-3', '')}部 / 製:{data.get('field-4', '')}部", normal_style)],
     ]
     info_table = Table(info_data, colWidths=[22*mm, 72*mm, 22*mm, 78*mm], rowHeights=[6.5*mm, 6.5*mm, 6.5*mm, 6.5*mm])
@@ -124,16 +135,16 @@ def generate_progress_card_pdf(data):
     story.append(info_table)
     story.append(Spacer(1, 1.5 * mm))
 
-    # 仕様情報
+    # 仕様情報（仕上寸法・付物/見返しの行高を15mmに指定）
     spec_data = [
         [Paragraph("仕上仕様", bold_style), Paragraph(f"{data.get('field-41', '')} / {data.get('field-42', '')}", normal_style),
          Paragraph("背固仕様", bold_style), Paragraph(str(data.get('field-43', '')), normal_style)],
-        [Paragraph("仕上寸法", bold_style), Paragraph(f"天地:{data.get('field-24', '')} / 左右:{data.get('field-25', '')} ({data.get('field-44', '')})", normal_style),
-         Paragraph("付物/見返し", bold_style), Paragraph(f"付:{data.get('field-49', '')} / 見:{data.get('field-48', '')}", normal_style)],
+        [Paragraph("仕上寸法", bold_style), Paragraph(f"天地:{data.get('field-24', '')} / 左右:{data.get('field-25', '')} ({data.get('field-44', '')})", spec_val_style),
+         Paragraph("付物/見返し", bold_style), Paragraph(f"付:{data.get('field-49', '')} / 見:{data.get('field-48', '')}", spec_val_style)],
         [Paragraph("口絵 / 折図", bold_style), Paragraph(f"口絵:{data.get('field-65', '')}(丁:{data.get('field-66', '')}) / 折図:{data.get('field-69', '')}", normal_style),
          Paragraph("半製品預かり", bold_style), Paragraph(str(data.get('field-81', '')), normal_style)],
     ]
-    spec_table = Table(spec_data, colWidths=[22*mm, 72*mm, 22*mm, 78*mm], rowHeights=[6.5*mm, 6.5*mm, 6.5*mm])
+    spec_table = Table(spec_data, colWidths=[22*mm, 72*mm, 22*mm, 78*mm], rowHeights=[6.5*mm, 15*mm, 6.5*mm])
     spec_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (-1,-1), colors.whitesmoke),
@@ -162,38 +173,61 @@ def generate_progress_card_pdf(data):
     story.append(num_grid_table)
     story.append(Spacer(1, 1.5 * mm))
 
-    # 特記事項欄
+    # 特記事項欄（データ部分の高さを28mmに指定）
     note_data = [
         [Paragraph("特記事項 / 申し送り欄（フリー手書きスペース）", bold_style)],
-        [Paragraph(str(data.get('field-45', '特記事項なし')) + "<br/><br/><br/>", normal_style)]
+        [Paragraph(str(data.get('field-45', '特記事項なし')), normal_style)]
     ]
-    note_table = Table(note_data, colWidths=[194*mm])
+    note_table = Table(note_data, colWidths=[194*mm], rowHeights=[6.5*mm, 28*mm])
     note_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (0,0), colors.whitesmoke),
+        ('VALIGN', (0,1), (0,1), 'TOP'),
+        ('VALIGN', (0,0), (0,0), 'MIDDLE'),
         ('PADDING', (0,0), (-1,-1), 3),
     ]))
     story.append(note_table)
     story.append(Spacer(1, 1.5 * mm))
 
-    # 工程チェックリスト
+    # ■工程チェックリスト（全12行、行高さ7mm、各項目3行に分割）
     chk_header = Paragraph("<b>■ 工程チェックリスト</b>", bold_style)
     story.append(chk_header)
     story.append(Spacer(1, 1 * mm))
 
+    space_3 = "&nbsp;&nbsp;&nbsp;"
+    date_seal_str = f"作業日:{space_3}年{space_3}月{space_3}日{space_3}■担当印&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+    chk_content_style_7mm = ParagraphStyle('ChkContent7', fontName=DEFAULT_FONT, fontSize=7, leading=8.5)
+
     checklist_data = [
-        [Paragraph("<b>【丁合】</b>", bold_style), Paragraph("・背丁、ページの確認<br/>・書名・台数・本数の確認<br/>・作業終了後余り丁・表紙の整理", chk_content_style), Paragraph("作業日:  年 月 日<br/>担当者印:", chk_content_style)],
-        [Paragraph("<b>【無線】</b>", bold_style), Paragraph("・表紙(書名、巻数、天グル防止)の確認<br/>・見返し・扉・口絵等の確認<br/>・カット・アジロ・小口糊の確認", chk_content_style), Paragraph("作業日:  年 月 日<br/>担当者印:", chk_content_style)],
-        [Paragraph("<b>【三方】</b>", bold_style), Paragraph("・寸法・落としの確認<br/>・アメ・カブリ・字切れ・トンボ残りの確認<br/>・折込・汚れの確認", chk_content_style), Paragraph("作業日:  年 月 日<br/>担当者印:", chk_content_style)],
-        [Paragraph("<b>【仕上げ】</b>", bold_style), Paragraph("・背丁・ページの確認 / 付物等書名・ISBN・定価等の確認<br/>・付物の印刷ヤレ確認 / 梱包の糊の具合・判子の状態の確認<br/>・作業後の片付けの確認 / 製品の最終チェック", chk_content_style), Paragraph("作業日:  年 月 日<br/>担当者印:", chk_content_style)],
+        # 丁合 (3行)
+        [Paragraph("<b>【丁合】</b>", bold_style), Paragraph("・背丁、ページの確認 / 書名・台数・本数の確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
+        [Paragraph("", bold_style), Paragraph("・作業終了後余り丁・表紙の整理", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
+        [Paragraph("", bold_style), Paragraph("", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
+        # 無線 (3行)
+        [Paragraph("<b>【無線】</b>", bold_style), Paragraph("・表紙(書名、巻数、天グル防止)の確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
+        [Paragraph("", bold_style), Paragraph("・見返し・扉・口絵等の確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
+        [Paragraph("", bold_style), Paragraph("・カット・アジロ・小口糊の確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
+        # 二方 / 三方 (3行)
+        [Paragraph("<b>【三方】</b>", bold_style), Paragraph("・寸法・落としの確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
+        [Paragraph("", bold_style), Paragraph("・アメ・カブリ・字切れ・トンボ残りの確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
+        [Paragraph("", bold_style), Paragraph("・折込・汚れの確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
+        # 仕上げ (3行)
+        [Paragraph("<b>【仕上げ】</b>", bold_style), Paragraph("・背丁・ページの確認 / 付物等書名・ISBN・定価等の確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
+        [Paragraph("", bold_style), Paragraph("・付物の印刷ヤレ確認 / 梱包の糊の具合・判子の状態の確認", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
+        [Paragraph("", bold_style), Paragraph("・作業後の片付けの確認 / 製品の最終チェック", chk_content_style_7mm), Paragraph(date_seal_str, chk_content_style_7mm)],
     ]
 
-    chk_table = Table(checklist_data, colWidths=[22*mm, 112*mm, 60*mm], rowHeights=[17.5*mm, 17.5*mm, 17.5*mm, 17.5*mm])
+    chk_table = Table(checklist_data, colWidths=[22*mm, 112*mm, 60*mm], rowHeights=[7*mm] * 12)
     chk_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-        ('BACKGROUND', (0,0), (-1,-1), colors.whitesmoke),
+        ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 3),
+        ('PADDING', (0,0), (-1,-1), 1),
+        # 丁合、無線、三方、仕上げの項目行セルを縦方向結合
+        ('SPAN', (0,0), (0,2)),
+        ('SPAN', (0,3), (0,5)),
+        ('SPAN', (0,6), (0,8)),
+        ('SPAN', (0,9), (0,11)),
     ]))
     story.append(chk_table)
 
@@ -259,7 +293,7 @@ def generate_menkake_pdf(data):
     story.append(book_title_table)
     story.append(Spacer(1, 1 * mm))
 
-    # 面掛テーブル（項目行1行 + 全10行 = 計11行）※行高を1.3倍（6.5*mm）に拡張
+    # 面掛テーブル（項目行1行 + 全10行 = 計11行）
     pasting_headers = [
         Paragraph("<b>面掛</b>", bold_style),
         Paragraph("<b>摘要</b>", bold_style),
@@ -309,7 +343,6 @@ def generate_menkake_pdf(data):
     # ==========================================
     # 下半部分：表2（16列構成）
     # ==========================================
-    # 面掛表の作業日：年・月・日のそれぞれに約2.5センチの手書きスペースを確保
     space_25cm = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
     work_date_str = f"<b>作業日:</b>{space_25cm}年{space_25cm}月{space_25cm}日"
 
@@ -377,7 +410,6 @@ def generate_menkake_pdf(data):
     story.append(Paragraph("<b>貼り込み表</b>", title_style))
     story.append(Spacer(1, 2 * mm))
 
-    # 貼り込み表の作業日：年・月・日のそれぞれに約2.5センチの手書きスペースを確保
     work_date_pasting = f"<b>作業日:</b>{space_25cm}年{space_25cm}月{space_25cm}日"
 
     pasting_info_data = [
@@ -461,7 +493,7 @@ if input_order_no:
         # 1. 製本進行カード出力ボタン
         with col_btn1:
             st.markdown("#### 📋 製本進行カード")
-            st.write("数字マス目を2倍に広げたチェックリスト付き")
+            st.write("数字マス目を広げたチェックリスト付き")
             progress_pdf_bytes = generate_progress_card_pdf(record_data)
             st.download_button(
                 label="📥 進行カードPDFをダウンロード",
