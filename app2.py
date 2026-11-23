@@ -45,15 +45,69 @@ else:
     DEFAULT_FONT = 'Helvetica'
 
 # ==========================================
+# 共通データ定義（総頁数折数表記・2頁目チェックリスト）
+# ==========================================
+FOLD_PAGE_GUIDE = "32p/ 16P／ 8P／ 4P／ 2P／"
+
+CHECKLIST_SECTIONS = [
+    (
+        "【丁合】",
+        [
+            "・背丁、ページの確認",
+            "・書名、台数、本数 の確認",
+            "・作業終了後 余り丁 表紙の整理",
+        ],
+    ),
+    (
+        "【無線】",
+        [
+            "・表紙(書名、巻数、天グル防止)の確認",
+            "・見返し・扉・口絵等の確認",
+            "・カット・アジロ・小口糊の確認",
+        ],
+    ),
+    (
+        "【三方】",
+        [
+            "・寸法・落としの確認",
+            "・アメ・カブリ・字切れ・トンボ残りの確認",
+            "・折込・汚れの確認",
+        ],
+    ),
+    (
+        "【仕上げ】",
+        [
+            "・背丁・ページの確認 /",
+            "・付物等書名・ISBN・定価等の確認",
+            "・付物の印刷ヤレ確認",
+            "・梱包の糊の具合・判子の状態の確認",
+            "・作業後の片付けの確認",
+            "・製品の最終チェック",
+        ],
+    ),
+]
+
+
+def _safe_str(val, default=""):
+    if val is None:
+        return default
+    return str(val)
+
+
+def _format_total_pages(data):
+    raw_pages = _safe_str(data.get("field-82")).strip()
+    page_part = f"{raw_pages} 頁 " if raw_pages else ""
+    return f"{page_part}{FOLD_PAGE_GUIDE}"
+
+
+# ==========================================
 # Excelスタイル定義 (openpyxl)
 # ==========================================
 EXCEL_FONT_NAME = "Meiryo UI"
 
 FONT_TITLE_CARD = Font(name=EXCEL_FONT_NAME, size=13, bold=True, color="111827")
-FONT_TITLE_SHEET = Font(name=EXCEL_FONT_NAME, size=15, bold=True, color="111827")
 FONT_BOLD = Font(name=EXCEL_FONT_NAME, size=9, bold=True, color="111827")
 FONT_NORMAL = Font(name=EXCEL_FONT_NAME, size=9, bold=False, color="111827")
-FONT_SMALL_CENTER = Font(name=EXCEL_FONT_NAME, size=8, bold=False, color="111827")
 FONT_SMALL_BOLD = Font(name=EXCEL_FONT_NAME, size=8, bold=True, color="111827")
 FONT_CHK = Font(name=EXCEL_FONT_NAME, size=8.5, bold=False, color="111827")
 
@@ -63,16 +117,17 @@ FILL_WHITE = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="so
 
 THIN_SIDE = Side(style="thin", color="6B7280")
 MED_SIDE = Side(style="medium", color="111827")
+DOUBLE_SIDE = Side(style="double", color="111827")
 
 BORDER_GRID = Border(left=THIN_SIDE, right=THIN_SIDE, top=THIN_SIDE, bottom=THIN_SIDE)
+BORDER_CHK_HEADER = Border(left=THIN_SIDE, right=THIN_SIDE, top=THIN_SIDE, bottom=DOUBLE_SIDE)
 
 ALIGN_LEFT = Alignment(horizontal="left", vertical="center", wrap_text=True)
 ALIGN_TOP_LEFT = Alignment(horizontal="left", vertical="top", wrap_text=True)
 ALIGN_CENTER = Alignment(horizontal="center", vertical="center", wrap_text=True)
-ALIGN_RIGHT = Alignment(horizontal="right", vertical="center", wrap_text=True)
 
 
-def _configure_a4_portrait_print(ws, fit_h=1):
+def _configure_a4_portrait_print(ws, fit_h=2):
     ws.views.sheetView[0].showGridLines = True
     ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
@@ -94,12 +149,6 @@ def _apply_box_border(ws, min_col, min_row, max_col, max_row):
             left = MED_SIDE if c == min_col else THIN_SIDE
             right = MED_SIDE if c == max_col else THIN_SIDE
             cell.border = Border(top=top, bottom=bottom, left=left, right=right)
-
-
-def _safe_str(val, default=""):
-    if val is None:
-        return default
-    return str(val)
 
 
 # ==========================================
@@ -134,7 +183,6 @@ def generate_progress_card_excel(data):
     ws.title = "製本進行カード"
     _configure_a4_portrait_print(ws, fit_h=2)
 
-    # 18列幅設定
     ws.column_dimensions["A"].width = 4.25
     for idx in range(2, 19):
         ws.column_dimensions[get_column_letter(idx)].width = 13.0
@@ -160,7 +208,7 @@ def generate_progress_card_excel(data):
         cell.alignment = ALIGN_CENTER if 10 <= c <= 15 else ALIGN_LEFT
     _apply_box_border(ws, 1, 1, 18, 1)
 
-    # --- 2〜7行目: 基本・仕様情報 ---
+    # --- 2〜7行目: 基本・仕様情報（5行目に折数ガイド追加） ---
     info_spec_rows = [
         (2, "書名", _safe_str(data.get("field-13")), "出版社", _safe_str(data.get("field-8"))),
         (3, "ISBN", _safe_str(data.get("field-93")), "印刷所", _safe_str(data.get("field-14"))),
@@ -174,7 +222,7 @@ def generate_progress_card_excel(data):
         (
             5,
             "総頁数",
-            f"{_safe_str(data.get('field-82'))} 頁",
+            _format_total_pages(data),
             "印刷/製本数",
             f"印:{_safe_str(data.get('field-3'))}部 / 製:{_safe_str(data.get('field-4'))}部",
         ),
@@ -234,7 +282,7 @@ def generate_progress_card_excel(data):
         cell.alignment = ALIGN_LEFT
         cell.border = BORDER_GRID
 
-    # --- 9行目: 袋払い (D9:I9 に 袋払い: {field-71} 表示) ＋ 予備 (J9:L9, M9:R9) ---
+    # --- 9行目: 袋払い (field-71) ＋ 予備枠 ---
     ws.row_dimensions[9].height = 20
     ws.merge_cells("A9:C9")
     ws.merge_cells("D9:I9")
@@ -301,7 +349,7 @@ def generate_progress_card_excel(data):
                 cell.alignment = ALIGN_TOP_LEFT
             cell.border = BORDER_GRID
 
-    # --- 20行目: 手書き用エリア（中永製本 ＋ フリー手書きスペース） ---
+    # --- 20行目: 手書き用エリア（中永製本） ---
     ws.row_dimensions[20].height = 68
     ws.merge_cells("A20:C20")
     ws.merge_cells("D20:R20")
@@ -320,108 +368,77 @@ def generate_progress_card_excel(data):
             cell.alignment = ALIGN_TOP_LEFT
         cell.border = BORDER_GRID
 
-    # --- 1シート内改ページ設定（20行目の後に改ページを挿入し、21行目から2頁目） ---
+    # 1シート内改ページ（20行目の後）
     ws.row_breaks.append(Break(id=20))
 
     # ==========================================
-    # 2頁目 (21行目〜): 特記事項 ＋ 工程チェックリスト
+    # 2頁目 (21行目〜): 特記事項 ＋ 画像準拠の工程チェックリスト
     # ==========================================
-    ws.row_dimensions[21].height = 24
-    ws.merge_cells("A21:O21")
-    ws.merge_cells("P21:R21")
-    ws["A21"] = f"製本進行カード (2/2) — 書名: {_safe_str(data.get('field-13'))}"
-    ws["P21"] = f"受注番号: {_safe_str(data.get('field-2'))}"
+    ws.row_dimensions[21].height = 20
+    ws.merge_cells("A21:R21")
+    ws["A21"] = "特記事項 / 申し送り欄（フリー手書きスペース）"
     for c in range(1, 19):
         cell = ws.cell(row=21, column=c)
-        cell.font = FONT_BOLD
-        cell.fill = FILL_HEADER_GRAY if c <= 15 else FILL_LABEL_BG
-        cell.alignment = ALIGN_LEFT
-    _apply_box_border(ws, 1, 21, 18, 21)
-
-    ws.row_dimensions[22].height = 8
-
-    # 特記事項 (23〜24行目)
-    ws.row_dimensions[23].height = 20
-    ws.merge_cells("A23:R23")
-    ws["A23"] = "特記事項 / 申し送り欄（フリー手書きスペース）"
-    for c in range(1, 19):
-        cell = ws.cell(row=23, column=c)
         cell.font = FONT_BOLD
         cell.fill = FILL_LABEL_BG
         cell.alignment = ALIGN_LEFT
         cell.border = BORDER_GRID
 
-    ws.row_dimensions[24].height = 90
-    ws.merge_cells("A24:R24")
-    ws["A24"] = _safe_str(data.get("field-45"), "特記事項なし")
+    ws.row_dimensions[22].height = 70
+    ws.merge_cells("A22:R22")
+    ws["A22"] = _safe_str(data.get("field-45"), "特記事項なし")
     for c in range(1, 19):
-        cell = ws.cell(row=24, column=c)
+        cell = ws.cell(row=22, column=c)
         cell.font = FONT_NORMAL
         cell.fill = FILL_WHITE
         cell.alignment = ALIGN_TOP_LEFT
         cell.border = BORDER_GRID
 
-    ws.row_dimensions[25].height = 10
+    ws.row_dimensions[23].height = 8
 
-    # 工程チェックリスト見出し (26行目)
-    ws.row_dimensions[26].height = 20
-    ws.merge_cells("A26:R26")
-    ws["A26"] = "■ 工程チェックリスト"
-    for c in range(1, 19):
-        cell = ws.cell(row=26, column=c)
-        cell.font = FONT_BOLD
-        cell.alignment = ALIGN_LEFT
+    curr_r = 24
+    for sec_title, items in CHECKLIST_SECTIONS:
+        start_r = curr_r
+        end_r = curr_r + len(items)  # 作業日行 + 各項目行
 
-    # 工程チェックリスト (27〜30行目)
-    checklist_items = [
-        (
-            "【丁合】",
-            "・背丁、ページの確認\n・書名・台数・本数の確認\n・作業終了後余り丁・表紙の整理",
-            "作業日:     年   月   日\n担当者印:",
-        ),
-        (
-            "【無線】",
-            "・表紙(書名、巻数、天グル防止)の確認\n・見返し・扉・口絵等の確認\n・カット・アジロ・小口糊の確認",
-            "作業日:     年   月   日\n担当者印:",
-        ),
-        (
-            "【三方】",
-            "・寸法・落としの確認\n・アメ・カブリ・字切れ・トンボ残りの確認\n・折込・汚れの確認",
-            "作業日:     年   月   日\n担当者印:",
-        ),
-        (
-            "【仕上げ】",
-            "・背丁・ページの確認 / 付物等書名・ISBN・定価等の確認\n・付物の印刷ヤレ確認 / 梱包の糊の具合・判子の状態の確認\n・作業後の片付けの確認 / 製品の最終チェック",
-            "作業日:     年   月   日\n担当者印:",
-        ),
-    ]
+        ws.merge_cells(start_row=start_r, start_column=1, end_row=end_r, end_column=3)
+        ws.cell(row=start_r, column=1, value=sec_title)
 
-    for idx, (proc_name, proc_chk, proc_sign) in enumerate(checklist_items):
-        r = 27 + idx
-        ws.row_dimensions[r].height = 68
-        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
-        ws.merge_cells(start_row=r, start_column=4, end_row=r, end_column=13)
-        ws.merge_cells(start_row=r, start_column=14, end_row=r, end_column=18)
-
-        ws.cell(row=r, column=1, value=proc_name)
-        ws.cell(row=r, column=4, value=proc_chk)
-        ws.cell(row=r, column=14, value=proc_sign)
+        # 作業日・担当者印行
+        ws.row_dimensions[start_r].height = 28
+        ws.merge_cells(start_row=start_r, start_column=4, end_row=start_r, end_column=18)
+        ws.cell(row=start_r, column=4, value="作業日：  年  月  日\n担当者印：")
 
         for c in range(1, 19):
-            cell = ws.cell(row=r, column=c)
-            if 1 <= c <= 3:
-                cell.font = FONT_BOLD
-                cell.fill = FILL_LABEL_BG
-                cell.alignment = ALIGN_CENTER
-            elif 4 <= c <= 13:
-                cell.font = FONT_CHK
-                cell.fill = FILL_WHITE
-                cell.alignment = ALIGN_LEFT
-            else:
-                cell.font = FONT_CHK
-                cell.fill = FILL_WHITE
-                cell.alignment = ALIGN_TOP_LEFT
-            cell.border = BORDER_GRID
+            cell = ws.cell(row=start_r, column=c)
+            cell.font = FONT_BOLD if 1 <= c <= 3 else FONT_CHK
+            cell.fill = FILL_LABEL_BG if 1 <= c <= 3 else FILL_WHITE
+            cell.alignment = ALIGN_CENTER if 1 <= c <= 3 else ALIGN_LEFT
+            cell.border = BORDER_CHK_HEADER
+
+        # 各チェック項目行（D〜M: 項目, N〜R: 記入/チェック欄）
+        for idx, item_text in enumerate(items):
+            r = start_r + 1 + idx
+            ws.row_dimensions[r].height = 24
+            ws.merge_cells(start_row=r, start_column=4, end_row=r, end_column=13)
+            ws.merge_cells(start_row=r, start_column=14, end_row=r, end_column=18)
+
+            ws.cell(row=r, column=4, value=item_text)
+            ws.cell(row=r, column=14, value="")
+
+            for c in range(1, 19):
+                cell = ws.cell(row=r, column=c)
+                if 1 <= c <= 3:
+                    cell.font = FONT_BOLD
+                    cell.fill = FILL_LABEL_BG
+                    cell.alignment = ALIGN_CENTER
+                else:
+                    cell.font = FONT_CHK
+                    cell.fill = FILL_WHITE
+                    cell.alignment = ALIGN_LEFT
+                cell.border = BORDER_GRID
+
+        curr_r = end_r + 1
 
     buf = io.BytesIO()
     wb.save(buf)
@@ -445,11 +462,11 @@ def generate_progress_card_pdf(data):
     normal_style = ParagraphStyle('CardNormal', fontName=DEFAULT_FONT, fontSize=8, leading=10.5)
     bold_style = ParagraphStyle('CardBold', fontName=DEFAULT_FONT, fontSize=8, leading=10.5)
     center_style = ParagraphStyle('CardCenter', fontName=DEFAULT_FONT, fontSize=7.5, leading=9, alignment=1)
-    chk_content_style = ParagraphStyle('ChkContent', fontName=DEFAULT_FONT, fontSize=8, leading=13)
+    chk_style = ParagraphStyle('ChkItem', fontName=DEFAULT_FONT, fontSize=8, leading=10.5)
 
     story = []
 
-    # --- 1頁目: ヘッダー ---
+    # --- 1頁目 ---
     header_data = [
         [
             Paragraph(f"<b>納期:</b> {_safe_str(data.get('field-52'))}", normal_style),
@@ -470,7 +487,6 @@ def generate_progress_card_pdf(data):
     story.append(header_table)
     story.append(Spacer(1, 2 * mm))
 
-    # --- 1頁目: 基本・仕様・袋払い(field-71)・予備枠 ---
     info_spec_data = [
         [
             Paragraph("書名", bold_style),
@@ -492,7 +508,7 @@ def generate_progress_card_pdf(data):
         ],
         [
             Paragraph("総頁数", bold_style),
-            Paragraph(f"{_safe_str(data.get('field-82'))} 頁", normal_style),
+            Paragraph(_format_total_pages(data), normal_style),
             Paragraph("印刷/製本数", bold_style),
             Paragraph(f"印:{_safe_str(data.get('field-3'))}部 / 製:{_safe_str(data.get('field-4'))}部", normal_style),
         ],
@@ -532,7 +548,6 @@ def generate_progress_card_pdf(data):
     story.append(info_spec_table)
     story.append(Spacer(1, 2.5 * mm))
 
-    # --- 1頁目: 数字マス目 (1〜54) ---
     row1_nums = [Paragraph(str(i), center_style) for i in range(1, 19)]
     row2_nums = [Paragraph(str(i), center_style) for i in range(19, 37)]
     row3_nums = [Paragraph(str(i), center_style) for i in range(37, 55)]
@@ -552,7 +567,6 @@ def generate_progress_card_pdf(data):
     story.append(num_grid_table)
     story.append(Spacer(1, 2.5 * mm))
 
-    # --- 1頁目: 手書き用エリア（丁合/無線/化粧/仕上/見本 ＋ 申送り、中永製本） ---
     handwriting_rows = [
         [Paragraph("<b>丁合</b>", bold_style), Paragraph("申送り", center_style), Paragraph("", normal_style)],
         [Paragraph("<b>無線</b>", bold_style), Paragraph("申送り", center_style), Paragraph("", normal_style)],
@@ -583,76 +597,64 @@ def generate_progress_card_pdf(data):
     ]))
     story.append(nakae_table)
 
-    # ==========================================
-    # 2頁目: 特記事項 ＋ 工程チェックリスト
-    # ==========================================
+    # --- 2頁目: 特記事項 ＋ 画像準拠の工程チェックリスト ---
     story.append(PageBreak())
-
-    page2_header = Table(
-        [[
-            Paragraph(f"<b>製本進行カード (2/2)</b> — {_safe_str(data.get('field-13'))}", bold_style),
-            Paragraph(f"<b>受注番号:</b> {_safe_str(data.get('field-2'))}", bold_style),
-        ]],
-        colWidths=[150*mm, 44*mm],
-        rowHeights=[9*mm]
-    )
-    page2_header.setStyle(TableStyle([
-        ('BOX', (0,0), (-1,-1), 1, colors.black),
-        ('INNERGRID', (0,0), (-1,-1), 0.5, colors.grey),
-        ('BACKGROUND', (0,0), (0,0), colors.lightgrey),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 3),
-    ]))
-    story.append(page2_header)
-    story.append(Spacer(1, 3 * mm))
 
     note_data = [
         [Paragraph("特記事項 / 申し送り欄（フリー手書きスペース）", bold_style)],
-        [Paragraph(_safe_str(data.get('field-45'), '特記事項なし') + "<br/><br/><br/><br/>", normal_style)]
+        [Paragraph(_safe_str(data.get('field-45'), '特記事項なし') + "<br/><br/><br/>", normal_style)]
     ]
-    note_table = Table(note_data, colWidths=[194*mm], rowHeights=[8*mm, 34*mm])
+    note_table = Table(note_data, colWidths=[194*mm], rowHeights=[7*mm, 24*mm])
     note_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (0,0), colors.whitesmoke),
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
-        ('PADDING', (0,0), (-1,-1), 4),
+        ('PADDING', (0,0), (-1,-1), 3),
     ]))
     story.append(note_table)
-    story.append(Spacer(1, 3 * mm))
+    story.append(Spacer(1, 2 * mm))
 
-    story.append(Paragraph("<b>■ 工程チェックリスト</b>", bold_style))
-    story.append(Spacer(1, 1.5 * mm))
-
-    checklist_data = [
-        [
-            Paragraph("<b>【丁合】</b>", bold_style),
-            Paragraph("・背丁、ページの確認<br/>・書名・台数・本数の確認<br/>・作業終了後余り丁・表紙の整理", chk_content_style),
-            Paragraph("作業日:     年   月   日<br/>担当者印:", chk_content_style),
-        ],
-        [
-            Paragraph("<b>【無線】</b>", bold_style),
-            Paragraph("・表紙(書名、巻数、天グル防止)の確認<br/>・見返し・扉・口絵等の確認<br/>・カット・アジロ・小口糊の確認", chk_content_style),
-            Paragraph("作業日:     年   月   日<br/>担当者印:", chk_content_style),
-        ],
-        [
-            Paragraph("<b>【三方】</b>", bold_style),
-            Paragraph("・寸法・落としの確認<br/>・アメ・カブリ・字切れ・トンボ残りの確認<br/>・折込・汚れの確認", chk_content_style),
-            Paragraph("作業日:     年   月   日<br/>担当者印:", chk_content_style),
-        ],
-        [
-            Paragraph("<b>【仕上げ】</b>", bold_style),
-            Paragraph("・背丁・ページの確認 / 付物等書名・ISBN・定価等の確認<br/>・付物の印刷ヤレ確認 / 梱包の糊の具合・判子の状態の確認<br/>・作業後の片付けの確認 / 製品の最終チェック", chk_content_style),
-            Paragraph("作業日:     年   月   日<br/>担当者印:", chk_content_style),
-        ],
-    ]
-
-    chk_table = Table(checklist_data, colWidths=[24*mm, 114*mm, 56*mm], rowHeights=[34*mm, 34*mm, 34*mm, 38*mm])
-    chk_table.setStyle(TableStyle([
+    chk_rows = []
+    chk_style_cmds = [
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-        ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 4),
-    ]))
+        ('PADDING', (0,0), (-1,-1), 2.5),
+    ]
+    row_heights = []
+    cur_idx = 0
+
+    for sec_title, items in CHECKLIST_SECTIONS:
+        start_idx = cur_idx
+        end_idx = cur_idx + len(items)
+
+        # 作業日・担当者印行
+        chk_rows.append([
+            Paragraph(f"<b>{sec_title}</b>", bold_style),
+            Paragraph("作業日：  年  月  日<br/>担当者印：", chk_style),
+            Paragraph("", chk_style),
+        ])
+        row_heights.append(9.5 * mm)
+        chk_style_cmds.append(('BACKGROUND', (0, cur_idx), (0, cur_idx), colors.whitesmoke))
+        chk_style_cmds.append(('ALIGN', (0, cur_idx), (0, cur_idx), 'CENTER'))
+        chk_style_cmds.append(('LINEBELOW', (1, cur_idx), (2, cur_idx), 1.2, colors.black))
+        cur_idx += 1
+
+        # 各項目行
+        for item_text in items:
+            chk_rows.append([
+                Paragraph("", bold_style),
+                Paragraph(item_text, chk_style),
+                Paragraph("", chk_style),
+            ])
+            row_heights.append(8.2 * mm)
+            chk_style_cmds.append(('BACKGROUND', (0, cur_idx), (0, cur_idx), colors.whitesmoke))
+            chk_style_cmds.append(('ALIGN', (0, cur_idx), (0, cur_idx), 'CENTER'))
+            cur_idx += 1
+
+        chk_style_cmds.append(('SPAN', (0, start_idx), (0, end_idx)))
+
+    chk_table = Table(chk_rows, colWidths=[24*mm, 118*mm, 52*mm], rowHeights=row_heights)
+    chk_table.setStyle(TableStyle(chk_style_cmds))
     story.append(chk_table)
 
     doc.build(story)
@@ -904,7 +906,7 @@ if input_order_no:
 
         with col_btn1:
             st.markdown("#### 📋 製本進行カード（全2頁）")
-            st.write("袋払い（field-71）・手書き欄・チェックリストを2頁に分割")
+            st.write("袋払い（field-71）・折数表記・2頁チェックリスト対応")
             progress_pdf_bytes = generate_progress_card_pdf(record_data)
             progress_xlsx_bytes = generate_progress_card_excel(record_data)
 
