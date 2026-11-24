@@ -118,11 +118,6 @@ def _get_fold_items(data):
     ]
 
 
-def _format_binding_copies(data):
-    raw_copies = _safe_str(data.get("field-4")).strip()
-    return f"{raw_copies}部" if raw_copies else "部"
-
-
 # ==========================================
 # Excelスタイル定義 (openpyxl)
 # ==========================================
@@ -401,9 +396,9 @@ def generate_progress_card_excel(data):
     # --- 17行目: 余白 ---
     ws.row_dimensions[17].height = 4
 
-    # --- 18〜27行目: 表②（1行あたり 25.0mm＝上段 12.5mm(35.4pt) ＋ 下段 12.5mm(35.4pt) × 5行） ---
+    # --- 18〜27行目: 表②（1行25.0mm：上段12.5mm(35.4pt) 年月日4文字空白 ＋ 下段12.5mm(35.4pt) 「部」右寄せ手入力） ---
     memo_labels = ["丁合", "無線", "化粧", "仕上", "見本"]
-    copies_str = _format_binding_copies(data)
+    excel_date_4char = "    年    月    日"
     curr_t2_r = 18
     for lbl in memo_labels:
         r_top = curr_t2_r
@@ -415,13 +410,13 @@ def generate_progress_card_excel(data):
         ws.merge_cells(start_row=r_top, start_column=1, end_row=r_bot, end_column=2)
         ws.merge_cells(start_row=r_top, start_column=8, end_row=r_bot, end_column=18)
 
-        # 日付・○○部欄(C-G)は上下2段
+        # 日付・部欄(C-G)は上下2段（下段は「部」だけ右寄せで残す手入力欄）
         ws.merge_cells(start_row=r_top, start_column=3, end_row=r_top, end_column=7)
         ws.merge_cells(start_row=r_bot, start_column=3, end_row=r_bot, end_column=7)
 
         ws.cell(row=r_top, column=1, value=lbl)
-        ws.cell(row=r_top, column=3, value="  年  月  日")
-        ws.cell(row=r_bot, column=3, value=copies_str)
+        ws.cell(row=r_top, column=3, value=excel_date_4char)
+        ws.cell(row=r_bot, column=3, value="部")
         ws.cell(row=r_top, column=8, value="申送り")
 
         for r_cur in (r_top, r_bot):
@@ -476,7 +471,7 @@ def generate_progress_card_excel(data):
     ws.row_breaks.append(Break(id=30))
 
     # ==========================================
-    # 2頁目 (31行目〜): 特記事項 ＋ 工程チェックリスト(各行 +3mm追加) ＋ 下部注意事項(3cm) ＋ フッター右寄せ
+    # 2頁目 (31行目〜): 特記事項 ＋ 工程チェックリスト(各行 +3mm追加・作業日4文字空白) ＋ 下部注意事項(3cm) ＋ フッター右寄せ
     # ==========================================
     ws.row_dimensions[31].height = 18
     ws.merge_cells("A31:R31")
@@ -508,10 +503,13 @@ def generate_progress_card_excel(data):
         ws.merge_cells(start_row=start_r, start_column=1, end_row=end_r, end_column=3)
         ws.cell(row=start_r, column=1, value=sec_title)
 
-        # 見出し行（+3mm = +8.5pt -> 31.5pt）
         ws.row_dimensions[start_r].height = 31.5
         ws.merge_cells(start_row=start_r, start_column=4, end_row=start_r, end_column=18)
-        ws.cell(row=start_r, column=4, value="作業日：  年  月  日\n担当者印：")
+        ws.cell(
+            row=start_r,
+            column=4,
+            value=f"作業日：{excel_date_4char}\n担当者印：",
+        )
 
         for c in range(1, 19):
             cell = ws.cell(row=start_r, column=c)
@@ -522,7 +520,6 @@ def generate_progress_card_excel(data):
 
         for idx, item_text in enumerate(items):
             r = start_r + 1 + idx
-            # 項目行（+3mm = +8.5pt -> 28.0pt）
             ws.row_dimensions[r].height = 28.0
             ws.merge_cells(start_row=r, start_column=4, end_row=r, end_column=13)
             ws.merge_cells(start_row=r, start_column=14, end_row=r, end_column=18)
@@ -596,7 +593,7 @@ def generate_progress_card_pdf(data):
     chk_style = ParagraphStyle('ChkItem', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5)
 
     story = []
-    nbsp2 = "&nbsp;&nbsp;"
+    nbsp4 = "&nbsp;&nbsp;&nbsp;&nbsp;"
 
     # --- 1頁目 ---
     header_data = [
@@ -742,10 +739,9 @@ def generate_progress_card_pdf(data):
     story.append(num_grid_table)
     story.append(Spacer(1, 1.0 * mm))
 
-    # --- 表②（1行あたり 25.0mm：上段12.5mm ＋ 下段12.5mm × 5行 ＝ 125.0mm） ---
+    # --- 表②（1行25.0mm：上段12.5mm 年月日4文字空白 ＋ 下段12.5mm 「部」だけ右寄せ手入力） ---
     memo_labels = ["丁合", "無線", "化粧", "仕上", "見本"]
-    copies_str = _format_binding_copies(data)
-    date_2char_blank = f"{nbsp2}年{nbsp2}月{nbsp2}日"
+    date_4char_blank = f"{nbsp4}年{nbsp4}月{nbsp4}日"
     t2_rows = []
     t2_heights = []
     t2_style_cmds = [
@@ -754,10 +750,10 @@ def generate_progress_card_pdf(data):
     ]
     cur_t2 = 0
     for lbl in memo_labels:
-        # 上段（12.5mm）：工程名(span) | 日付（2文字年2文字月2文字日） | 申送り（上部左寄せ・span）
+        # 上段（12.5mm）：工程名(span) | 日付（全角4文字空白） | 申送り（上部左寄せ・span）
         t2_rows.append([
             Paragraph(f"<b>{lbl}</b>", bold_center_style),
-            Paragraph(date_2char_blank, normal_style),
+            Paragraph(date_4char_blank, normal_style),
             Paragraph("申送り", normal_style),
         ])
         t2_heights.append(12.5 * mm)
@@ -769,10 +765,10 @@ def generate_progress_card_pdf(data):
         t2_style_cmds.append(('ALIGN', (2, cur_t2), (2, cur_t2), 'LEFT'))
         cur_t2 += 1
 
-        # 下段（12.5mm）：工程名(span) | ○○部 右寄せ | 申送り（span）
+        # 下段（12.5mm）：工程名(span) | 「部」だけ右寄せ手入力 | 申送り（span）
         t2_rows.append([
             Paragraph("", bold_center_style),
-            Paragraph(copies_str, right_bold_style),
+            Paragraph("部", right_bold_style),
             Paragraph("", normal_style),
         ])
         t2_heights.append(12.5 * mm)
@@ -815,7 +811,7 @@ def generate_progress_card_pdf(data):
     # 枠線外側のフッター余白（右寄せ：作成者 ㈱中永製本）
     story.append(Paragraph("作成者 ㈱中永製本", footer_right_style))
 
-    # --- 2頁目: 特記事項 ＋ 工程チェックリスト(各行 +3mm追加) ＋ 下部注意事項(3cm = 30mm) ＋ フッター右寄せ ---
+    # --- 2頁目: 特記事項 ＋ 工程チェックリスト(各行 +3mm追加・作業日4文字空白) ＋ 下部注意事項(3cm = 30mm) ＋ フッター右寄せ ---
     story.append(PageBreak())
 
     note_data = [
@@ -840,16 +836,15 @@ def generate_progress_card_pdf(data):
     ]
     row_heights = []
     cur_idx = 0
-    work_date_2char = f"作業日：{nbsp2}年{nbsp2}月{nbsp2}日<br/>担当者印："
+    work_date_4char = f"作業日：{nbsp4}年{nbsp4}月{nbsp4}日<br/>担当者印："
 
     for sec_title, items in CHECKLIST_SECTIONS:
         start_idx = cur_idx
         end_idx = cur_idx + len(items)
 
-        # 見出し行（+3mm追加 -> 11.0mm）
         chk_rows.append([
             Paragraph(f"<b>{sec_title}</b>", bold_style),
-            Paragraph(work_date_2char, chk_style),
+            Paragraph(work_date_4char, chk_style),
             Paragraph("", chk_style),
         ])
         row_heights.append(11.0 * mm)
@@ -858,7 +853,6 @@ def generate_progress_card_pdf(data):
         chk_style_cmds.append(('LINEBELOW', (1, cur_idx), (2, cur_idx), 1.0, colors.black))
         cur_idx += 1
 
-        # チェック項目行（+3mm追加 -> 9.6mm）
         for item_text in items:
             chk_rows.append([
                 Paragraph("", bold_style),
@@ -1494,7 +1488,7 @@ if input_order_no:
 
         with col_btn1:
             st.markdown("#### 📋 製本進行カード（全2頁）")
-            st.write("表② 25mm(12.5mm×2)・2Pチェックリスト+3mm・1P特記事項2cm・フッター右寄せ対応")
+            st.write("表②「部」手入力右寄せ・1P/2P年月日4文字空白・25mm行高・特記事項2cm対応")
             progress_pdf_bytes = generate_progress_card_pdf(record_data)
             progress_xlsx_bytes = generate_progress_card_excel(record_data)
 
