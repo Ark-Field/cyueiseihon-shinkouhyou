@@ -100,13 +100,24 @@ def _format_total_pages(data):
     return f"{page_part}{FOLD_PAGE_GUIDE}"
 
 
+def _format_fold_breakdown(data):
+    parts = [
+        f"32P:{_safe_str(data.get('field-30'), '-')}",
+        f"16P:{_safe_str(data.get('field-31'), '-')}",
+        f"8P:{_safe_str(data.get('field-32'), '-')}",
+        f"4P:{_safe_str(data.get('field-33'), '-')}",
+        f"2P:{_safe_str(data.get('field-34'), '-')}",
+    ]
+    return " / ".join(parts)
+
+
 # ==========================================
 # Excelスタイル定義 (openpyxl)
 # ==========================================
 EXCEL_FONT_NAME = "Meiryo UI"
 
 FONT_TITLE_CARD = Font(name=EXCEL_FONT_NAME, size=13, bold=True, color="111827")
-FONT_TITLE_MENKAKE = Font(name=EXCEL_FONT_NAME, size=14, bold=True, color="111827")
+FONT_TITLE_MENKAKE = Font(name=EXCEL_FONT_NAME, size=13, bold=True, color="111827")
 FONT_BOLD = Font(name=EXCEL_FONT_NAME, size=9, bold=True, color="111827")
 FONT_NORMAL = Font(name=EXCEL_FONT_NAME, size=9, bold=False, color="111827")
 FONT_SMALL_BOLD = Font(name=EXCEL_FONT_NAME, size=8, bold=True, color="111827")
@@ -130,17 +141,17 @@ ALIGN_CENTER = Alignment(horizontal="center", vertical="center", wrap_text=True)
 ALIGN_RIGHT = Alignment(horizontal="right", vertical="center", wrap_text=True)
 
 
-def _configure_a4_portrait_print(ws, fit_h=2):
+def _configure_a4_portrait_print(ws, fit_h=2, margin_lr=0.2, margin_tb=0.2):
     ws.views.sheetView[0].showGridLines = True
     ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
     ws.sheet_properties.pageSetUpPr.fitToPage = True
     ws.page_setup.fitToWidth = 1
     ws.page_setup.fitToHeight = fit_h
-    ws.page_margins.left = 0.25
-    ws.page_margins.right = 0.25
-    ws.page_margins.top = 0.25
-    ws.page_margins.bottom = 0.25
+    ws.page_margins.left = margin_lr
+    ws.page_margins.right = margin_lr
+    ws.page_margins.top = margin_tb
+    ws.page_margins.bottom = margin_tb
 
 
 def _apply_box_border(ws, min_col, min_row, max_col, max_row):
@@ -184,7 +195,7 @@ def generate_progress_card_excel(data):
     wb = Workbook()
     ws = wb.active
     ws.title = "製本進行カード"
-    _configure_a4_portrait_print(ws, fit_h=2)
+    _configure_a4_portrait_print(ws, fit_h=2, margin_lr=0.25, margin_tb=0.25)
 
     ws.column_dimensions["A"].width = 4.25
     for idx in range(2, 19):
@@ -668,21 +679,23 @@ def generate_menkake_excel(data):
     wb = Workbook()
     ws = wb.active
     ws.title = "面掛表_貼り込み表"
-    _configure_a4_portrait_print(ws, fit_h=2)
+    # A4縦1頁・2頁に余裕を持って収めるため余白を最適化
+    _configure_a4_portrait_print(ws, fit_h=2, margin_lr=0.2, margin_tb=0.18)
 
-    # 16列共通グリッド（下段の4ブロック×4列=16列を基準に設定）
+    # 16列共通グリッド（下段4ブロック×4列=16列を基準）
     # [No, 担当, 折メーター, 折損] × 4
-    block_widths = [3.6, 6.2, 8.8, 4.4]
+    block_widths = [3.5, 6.2, 8.8, 4.3]
     for block_idx in range(4):
         for offset, w in enumerate(block_widths):
             col_idx = block_idx * 4 + offset + 1
             ws.column_dimensions[get_column_letter(col_idx)].width = w
 
     # ==========================================
-    # 1頁目 (1〜31行目): 面掛表 ＆ 折メーター表
+    # 1頁目 (1〜27行目): 面掛表 ＆ 表組①(0.9cm) ＆ 注意事項(2cm) ＆ 作業日 ＆ 表組②(1.2cm) ＆ 注意事項(2cm)
+    # 合計高さ目安: 約274mm（A4縦 297mm - 余白約9mm = 約288mm以内に収める）
     # ==========================================
     # --- 1行目: タイトル ---
-    ws.row_dimensions[1].height = 26
+    ws.row_dimensions[1].height = 20
     ws.merge_cells("A1:P1")
     ws["A1"] = "面 掛 表"
     for c in range(1, 17):
@@ -692,131 +705,146 @@ def generate_menkake_excel(data):
         cell.alignment = ALIGN_CENTER
     _apply_box_border(ws, 1, 1, 16, 1)
 
-    ws.row_dimensions[2].height = 4
+    # --- 2行目: 受注番号 / 出版社名 ---
+    ws.row_dimensions[2].height = 16.5
+    ws.merge_cells("A2:B2")
+    ws.merge_cells("C2:H2")
+    ws.merge_cells("I2:J2")
+    ws.merge_cells("K2:P2")
 
-    # --- 3行目: 受注番号 / ISBN ---
-    ws.row_dimensions[3].height = 20
+    ws["A2"] = "受注番号"
+    ws["C2"] = _safe_str(data.get("field-2"))
+    ws["I2"] = "出版社名"
+    ws["K2"] = _safe_str(data.get("field-8"))
+
+    for c in range(1, 17):
+        cell = ws.cell(row=2, column=c)
+        is_label = c in (1, 2, 9, 10)
+        cell.font = FONT_SMALL_BOLD if is_label else FONT_SMALL
+        cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
+        cell.alignment = ALIGN_CENTER if is_label else ALIGN_LEFT
+        cell.border = BORDER_GRID
+
+    # --- 3行目: 書名（field-13 自動印字） ---
+    ws.row_dimensions[3].height = 17
     ws.merge_cells("A3:B3")
-    ws.merge_cells("C3:H3")
-    ws.merge_cells("I3:J3")
-    ws.merge_cells("K3:P3")
-
-    ws["A3"] = "受注番号"
-    ws["C3"] = _safe_str(data.get("field-2"))
-    ws["I3"] = "ISBN"
-    ws["K3"] = _safe_str(data.get("field-93"))
-
+    ws.merge_cells("C3:P3")
+    ws["A3"] = "書名"
+    ws["C3"] = _safe_str(data.get("field-13"))
     for c in range(1, 17):
         cell = ws.cell(row=3, column=c)
-        is_label = c in (1, 2, 9, 10)
-        cell.font = FONT_BOLD if is_label else FONT_NORMAL
+        is_label = c in (1, 2)
+        cell.font = FONT_SMALL_BOLD if is_label else FONT_BOLD
         cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
         cell.alignment = ALIGN_CENTER if is_label else ALIGN_LEFT
         cell.border = BORDER_GRID
 
-    # --- 4行目: 書名（手書きスペース確保） ---
-    ws.row_dimensions[4].height = 22
+    # --- 4行目: 総頁数 / 折数（32P,16P,8P,4P,2P）/ 合計台数 ---
+    ws.row_dimensions[4].height = 17
     ws.merge_cells("A4:B4")
-    ws.merge_cells("C4:P4")
-    ws["A4"] = "書 名"
-    ws["C4"] = ""
+    ws.merge_cells("C4:D4")
+    ws.merge_cells("E4:F4")
+    ws.merge_cells("G4:M4")
+    ws.merge_cells("N4:O4")
+    ws["A4"] = "総頁数"
+    ws["C4"] = _safe_str(data.get("field-82"))
+    ws["E4"] = "折数"
+    ws["G4"] = _format_fold_breakdown(data)
+    ws["N4"] = "合計台数"
+    ws["P4"] = _safe_str(data.get("field-35"))
+
     for c in range(1, 17):
         cell = ws.cell(row=4, column=c)
-        is_label = c in (1, 2)
-        cell.font = FONT_BOLD if is_label else FONT_NORMAL
+        is_label = c in (1, 2, 5, 6, 14, 15)
+        cell.font = FONT_SMALL_BOLD if is_label else FONT_SMALL
         cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
-        cell.alignment = ALIGN_CENTER if is_label else ALIGN_LEFT
+        if is_label:
+            cell.alignment = ALIGN_CENTER
+        elif c in (3, 4, 16):
+            cell.alignment = ALIGN_CENTER
+        else:
+            cell.alignment = ALIGN_LEFT
         cell.border = BORDER_GRID
 
-    ws.row_dimensions[5].height = 4
+    # --- 5行目: 表組① ヘッダー（面掛｜備考｜面掛｜備考） ---
+    # A:D(面掛), E:H(備考), I:L(面掛), M:P(備考)
+    ws.row_dimensions[5].height = 16.5
+    ws.merge_cells("A5:D5")
+    ws.merge_cells("E5:H5")
+    ws.merge_cells("I5:L5")
+    ws.merge_cells("M5:P5")
 
-    # --- 6行目: 面掛テーブル ヘッダー ---
-    # A:C(面掛1), D:E(摘要1), F:H(面掛2), I:J(摘要2), K:P(備考)
-    ws.row_dimensions[6].height = 20
-    ws.merge_cells("A6:C6")
-    ws.merge_cells("D6:E6")
-    ws.merge_cells("F6:H6")
-    ws.merge_cells("I6:J6")
-    ws.merge_cells("K6:P6")
-
-    ws["A6"] = "面掛"
-    ws["D6"] = "摘要"
-    ws["F6"] = "面掛"
-    ws["I6"] = "摘要"
-    ws["K6"] = "備考"
+    ws["A5"] = "面掛"
+    ws["E5"] = "備考"
+    ws["I5"] = "面掛"
+    ws["M5"] = "備考"
 
     for c in range(1, 17):
-        cell = ws.cell(row=6, column=c)
-        cell.font = FONT_BOLD
-        cell.fill = FILL_LABEL_BG
-        cell.alignment = ALIGN_CENTER
-        cell.border = BORDER_GRID
-
-    # --- 7〜16行目: 面掛テーブル 10行 ---
-    for i in range(10):
-        r = 7 + i
-        ws.row_dimensions[r].height = 21
-        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
-        ws.merge_cells(start_row=r, start_column=4, end_row=r, end_column=5)
-        ws.merge_cells(start_row=r, start_column=6, end_row=r, end_column=8)
-        ws.merge_cells(start_row=r, start_column=9, end_row=r, end_column=10)
-        ws.merge_cells(start_row=r, start_column=11, end_row=r, end_column=16)
-
-        ws.cell(row=r, column=1, value="×")
-        ws.cell(row=r, column=6, value="×")
-
-        for c in range(1, 17):
-            cell = ws.cell(row=r, column=c)
-            cell.font = FONT_NORMAL
-            cell.fill = FILL_WHITE
-            cell.alignment = ALIGN_CENTER if c in (1, 6) else ALIGN_LEFT
-            cell.border = BORDER_GRID
-
-    # --- 17行目: 注意事項（上段） ---
-    ws.row_dimensions[17].height = 68
-    ws.merge_cells("A17:B17")
-    ws.merge_cells("C17:P17")
-    ws["A17"] = "注意事項"
-    ws["C17"] = ""
-    for c in range(1, 17):
-        cell = ws.cell(row=17, column=c)
-        is_label = c in (1, 2)
-        cell.font = FONT_BOLD if is_label else FONT_NORMAL
-        cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
-        cell.alignment = ALIGN_CENTER if is_label else ALIGN_TOP_LEFT
-        cell.border = BORDER_GRID
-
-    ws.row_dimensions[18].height = 6
-
-    # --- 19行目: 作業日 ---
-    ws.row_dimensions[19].height = 20
-    ws.merge_cells("A19:B19")
-    ws.merge_cells("C19:P19")
-    ws["A19"] = "作業日"
-    ws["C19"] = "     年    月    日"
-    for c in range(1, 17):
-        cell = ws.cell(row=19, column=c)
-        is_label = c in (1, 2)
-        cell.font = FONT_BOLD if is_label else FONT_NORMAL
-        cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
-        cell.alignment = ALIGN_CENTER if is_label else ALIGN_LEFT
-        cell.border = BORDER_GRID
-
-    # --- 20行目: 折メーター表 ヘッダー（4ブロック×4列） ---
-    ws.row_dimensions[20].height = 20
-    sub_headers = ["No", "担当", "折メーター", "折損"] * 4
-    for idx, text in enumerate(sub_headers):
-        c = idx + 1
-        cell = ws.cell(row=20, column=c, value=text)
+        cell = ws.cell(row=5, column=c)
         cell.font = FONT_SMALL_BOLD
         cell.fill = FILL_LABEL_BG
         cell.alignment = ALIGN_CENTER
         cell.border = BORDER_GRID
 
-    # --- 21〜30行目: 折メーター表 1〜40番 ---
+    # --- 6〜15行目: 表組①（手書き用・枠のみ・4列×10段・行高さ 0.9cm = 25.5pt） ---
+    for i in range(10):
+        r = 6 + i
+        ws.row_dimensions[r].height = 25.5
+        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=4)
+        ws.merge_cells(start_row=r, start_column=5, end_row=r, end_column=8)
+        ws.merge_cells(start_row=r, start_column=9, end_row=r, end_column=12)
+        ws.merge_cells(start_row=r, start_column=13, end_row=r, end_column=16)
+
+        for c in range(1, 17):
+            cell = ws.cell(row=r, column=c, value="")
+            cell.font = FONT_SMALL
+            cell.fill = FILL_WHITE
+            cell.alignment = ALIGN_LEFT
+            cell.border = BORDER_GRID
+
+    # --- 16行目: 注意事項（高さ 2.0cm = 56.7pt） ---
+    ws.row_dimensions[16].height = 56.7
+    ws.merge_cells("A16:B16")
+    ws.merge_cells("C16:P16")
+    ws["A16"] = "注意事項"
+    ws["C16"] = ""
+    for c in range(1, 17):
+        cell = ws.cell(row=16, column=c)
+        is_label = c in (1, 2)
+        cell.font = FONT_SMALL_BOLD if is_label else FONT_SMALL
+        cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
+        cell.alignment = ALIGN_CENTER if is_label else ALIGN_TOP_LEFT
+        cell.border = BORDER_GRID
+
+    # --- 17行目: 作業日 枠（手書き記入用・年月日空欄） ---
+    ws.row_dimensions[17].height = 17.5
+    ws.merge_cells("A17:B17")
+    ws.merge_cells("C17:P17")
+    ws["A17"] = "作業日"
+    ws["C17"] = "     年    月    日"
+    for c in range(1, 17):
+        cell = ws.cell(row=17, column=c)
+        is_label = c in (1, 2)
+        cell.font = FONT_SMALL_BOLD if is_label else FONT_SMALL
+        cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
+        cell.alignment = ALIGN_CENTER if is_label else ALIGN_LEFT
+        cell.border = BORDER_GRID
+
+    # --- 18行目: 表組② ヘッダー（現況のまま） ---
+    ws.row_dimensions[18].height = 16.5
+    sub_headers = ["No", "担当", "折メーター", "折損"] * 4
+    for idx, text in enumerate(sub_headers):
+        c = idx + 1
+        cell = ws.cell(row=18, column=c, value=text)
+        cell.font = FONT_SMALL_BOLD
+        cell.fill = FILL_LABEL_BG
+        cell.alignment = ALIGN_CENTER
+        cell.border = BORDER_GRID
+
+    # --- 19〜28行目: 表組②（手書き用空欄・現況のまま・高さ 1.2cm = 34.0pt） ---
     for r_offset in range(10):
-        r = 21 + r_offset
-        ws.row_dimensions[r].height = 17.5
+        r = 19 + r_offset
+        ws.row_dimensions[r].height = 34.0
         for block_idx in range(4):
             base_col = block_idx * 4 + 1
             no_val = r_offset + 1 + (block_idx * 10)
@@ -834,59 +862,57 @@ def generate_menkake_excel(data):
                 cell.alignment = ALIGN_CENTER
                 cell.border = BORDER_GRID
 
-    # --- 31行目: 注意事項（下段） ---
-    ws.row_dimensions[31].height = 60
-    ws.merge_cells("A31:B31")
-    ws.merge_cells("C31:P31")
-    ws["A31"] = "注意事項"
-    ws["C31"] = ""
+    # --- 29行目: 注意事項（高さ 2.0cm = 56.7pt） ---
+    ws.row_dimensions[29].height = 56.7
+    ws.merge_cells("A29:B29")
+    ws.merge_cells("C29:P29")
+    ws["A29"] = "注意事項"
+    ws["C29"] = ""
     for c in range(1, 17):
-        cell = ws.cell(row=31, column=c)
+        cell = ws.cell(row=29, column=c)
         is_label = c in (1, 2)
-        cell.font = FONT_BOLD if is_label else FONT_NORMAL
+        cell.font = FONT_SMALL_BOLD if is_label else FONT_SMALL
         cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
         cell.alignment = ALIGN_CENTER if is_label else ALIGN_TOP_LEFT
         cell.border = BORDER_GRID
 
-    # 1シート内改ページ（31行目の後で2頁目へ）
-    ws.row_breaks.append(Break(id=31))
+    # 1シート内改ページ（29行目の後で2頁目へ）
+    ws.row_breaks.append(Break(id=29))
 
     # ==========================================
-    # 2頁目 (32〜59行目): 貼り込み表
+    # 2頁目 (30〜56行目): 貼り込み表
     # ==========================================
-    # --- 32行目: タイトル ---
-    ws.row_dimensions[32].height = 26
-    ws.merge_cells("A32:P32")
-    ws["A32"] = "貼 り 込 み 表"
+    ws.row_dimensions[30].height = 24
+    ws.merge_cells("A30:P30")
+    ws["A30"] = "貼 り 込 み 表"
     for c in range(1, 17):
-        cell = ws.cell(row=32, column=c)
+        cell = ws.cell(row=30, column=c)
         cell.font = FONT_TITLE_MENKAKE
         cell.fill = FILL_HEADER_GRAY
         cell.alignment = ALIGN_CENTER
-    _apply_box_border(ws, 1, 32, 16, 32)
+    _apply_box_border(ws, 1, 30, 16, 30)
 
-    ws.row_dimensions[33].height = 4
+    ws.row_dimensions[31].height = 5
 
-    # --- 34行目: 書名・部数・作業日 ---
-    # A:B(書名lbl), C:G(書名空欄), H(部数lbl), I:J(部数), K:L(作業日lbl), M:P(作業日)
-    ws.row_dimensions[34].height = 22
-    ws.merge_cells("A34:B34")
-    ws.merge_cells("C34:G34")
-    ws.merge_cells("I34:J34")
-    ws.merge_cells("K34:L34")
-    ws.merge_cells("M34:P34")
+    # --- 32行目: 書名・部数・作業日 ---
+    ws.row_dimensions[32].height = 22
+    ws.merge_cells("A32:B32")
+    ws.merge_cells("C32:G32")
+    ws.merge_cells("I32:J32")
+    ws.merge_cells("K32:L32")
+    ws.merge_cells("M32:P32")
 
-    ws["A34"] = "書名"
-    ws["C34"] = ""
-    ws["H34"] = "部数"
-    ws["I34"] = f"{_safe_str(data.get('field-4', '500'))} 部"
-    ws["K34"] = "作業日"
-    ws["M34"] = "  年  月  日"
+    ws["A32"] = "書名"
+    ws["C32"] = _safe_str(data.get("field-13"))
+    ws["H32"] = "部数"
+    ws["I32"] = f"{_safe_str(data.get('field-4', '500'))} 部"
+    ws["K32"] = "作業日"
+    ws["M32"] = "   年   月   日"
 
     for c in range(1, 17):
-        cell = ws.cell(row=34, column=c)
+        cell = ws.cell(row=32, column=c)
         is_label = c in (1, 2, 8, 11, 12)
-        cell.font = FONT_BOLD if is_label else FONT_NORMAL
+        cell.font = FONT_SMALL_BOLD if is_label else FONT_SMALL
         cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
         if is_label:
             cell.alignment = ALIGN_CENTER
@@ -896,33 +922,32 @@ def generate_menkake_excel(data):
             cell.alignment = ALIGN_LEFT
         cell.border = BORDER_GRID
 
-    ws.row_dimensions[35].height = 4
+    ws.row_dimensions[33].height = 5
 
-    # --- 36行目: 貼り込み表 ヘッダー ---
-    # A:E(貼り込み箇所), F:G(本数), H:I(半端), J:K(ヤレ枚数), L:P(備考)
-    ws.row_dimensions[36].height = 22
-    ws.merge_cells("A36:E36")
-    ws.merge_cells("F36:G36")
-    ws.merge_cells("H36:I36")
-    ws.merge_cells("J36:K36")
-    ws.merge_cells("L36:P36")
+    # --- 34行目: 貼り込み表 ヘッダー ---
+    ws.row_dimensions[34].height = 22
+    ws.merge_cells("A34:E34")
+    ws.merge_cells("F34:G34")
+    ws.merge_cells("H34:I34")
+    ws.merge_cells("J34:K34")
+    ws.merge_cells("L34:P34")
 
-    ws["A36"] = "貼り込み箇所"
-    ws["F36"] = "本数"
-    ws["H36"] = "半端"
-    ws["J36"] = "ヤレ枚数"
-    ws["L36"] = "備考"
+    ws["A34"] = "貼り込み箇所"
+    ws["F34"] = "本数"
+    ws["H34"] = "半端"
+    ws["J34"] = "ヤレ枚数"
+    ws["L34"] = "備考"
 
     for c in range(1, 17):
-        cell = ws.cell(row=36, column=c)
-        cell.font = FONT_BOLD
+        cell = ws.cell(row=34, column=c)
+        cell.font = FONT_SMALL_BOLD
         cell.fill = FILL_LABEL_BG
         cell.alignment = ALIGN_CENTER
         cell.border = BORDER_GRID
 
-    # --- 37〜60行目: 貼り込み表 24行 ---
+    # --- 35〜58行目: 貼り込み表 24行（折〜折 中央寄せ） ---
     for i in range(24):
-        r = 37 + i
+        r = 35 + i
         ws.row_dimensions[r].height = 24
         ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=5)
         ws.merge_cells(start_row=r, start_column=6, end_row=r, end_column=7)
@@ -955,7 +980,7 @@ def generate_menkake_excel(data):
 
 
 # ==========================================
-# 2-B. 面掛表・貼り込み表 PDF生成（2ページ構成）
+# 2-B. 面掛表・貼り込み表 PDF生成（2ページ構成・A4縦収まり調整）
 # ==========================================
 def generate_menkake_pdf(data):
     pdf_path = "temp_menkake.pdf"
@@ -963,173 +988,192 @@ def generate_menkake_pdf(data):
         pdf_path,
         pagesize=A4,
         rightMargin=8 * mm, leftMargin=8 * mm,
-        topMargin=4 * mm, bottomMargin=4 * mm
+        topMargin=3.5 * mm, bottomMargin=3.5 * mm
     )
 
-    title_style = ParagraphStyle('Title16', fontName=DEFAULT_FONT, fontSize=16, leading=20, alignment=1)
-    normal_style = ParagraphStyle('Normal', fontName=DEFAULT_FONT, fontSize=7.5, leading=10)
-    bold_style = ParagraphStyle('Bold', fontName=DEFAULT_FONT, fontSize=7.5, leading=10)
-    center_style = ParagraphStyle('Center', fontName=DEFAULT_FONT, fontSize=7.5, leading=10, alignment=1)
-    right_style = ParagraphStyle('Right', fontName=DEFAULT_FONT, fontSize=7.5, leading=10, alignment=2)
-
-    center_7pt = ParagraphStyle('Center7Pt', fontName=DEFAULT_FONT, fontSize=7, leading=9, alignment=1)
-    bold_center_7pt = ParagraphStyle('BoldCenter7Pt', fontName=DEFAULT_FONT, fontSize=7, leading=9, alignment=1)
+    title_style = ParagraphStyle('Title14', fontName=DEFAULT_FONT, fontSize=13.5, leading=16, alignment=1)
+    normal_style = ParagraphStyle('Normal7', fontName=DEFAULT_FONT, fontSize=7, leading=8.8)
+    bold_style = ParagraphStyle('Bold7', fontName=DEFAULT_FONT, fontSize=7, leading=8.8)
+    center_style = ParagraphStyle('Center7', fontName=DEFAULT_FONT, fontSize=7, leading=8.8, alignment=1)
+    right_style = ParagraphStyle('Right7', fontName=DEFAULT_FONT, fontSize=7, leading=8.8, alignment=2)
+    center_65pt = ParagraphStyle('Center65', fontName=DEFAULT_FONT, fontSize=6.5, leading=8, alignment=1)
+    bold_center_65pt = ParagraphStyle('BoldCenter65', fontName=DEFAULT_FONT, fontSize=6.5, leading=8, alignment=1)
 
     story = []
 
+    # --- 1頁目: 面掛表 ---
     story.append(Paragraph("<b>面掛表</b>", title_style))
-    story.append(Spacer(1, 1 * mm))
+    story.append(Spacer(1, 0.8 * mm))
 
+    # 受注番号 / 出版社名
     top_info_data = [
         [
-            Paragraph(f"<b>受注番号:</b> {data.get('field-2', '')}", normal_style),
-            Paragraph(f"<b>ISBN:</b> {data.get('field-93', '')}", normal_style)
+            Paragraph(f"<b>受注番号:</b> {_safe_str(data.get('field-2'))}", normal_style),
+            Paragraph(f"<b>出版社名:</b> {_safe_str(data.get('field-8'))}", normal_style),
         ]
     ]
-    top_info_table = Table(top_info_data, colWidths=[97*mm, 97*mm], rowHeights=[5*mm])
+    top_info_table = Table(top_info_data, colWidths=[97 * mm, 97 * mm], rowHeights=[4.8 * mm])
     top_info_table.setStyle(TableStyle([
-        ('BOX', (0,0), (-1,-1), 0.5, colors.black),
-        ('INNERGRID', (0,0), (-1,-1), 0.5, colors.grey),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 2),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('PADDING', (0, 0), (-1, -1), 1.5),
     ]))
     story.append(top_info_table)
-    story.append(Spacer(1, 1 * mm))
+    story.append(Spacer(1, 0.8 * mm))
 
-    title_blank = " " * 55
-    book_title_data = [[Paragraph(f"<b>書名:</b> {title_blank}", normal_style)]]
-    book_title_table = Table(book_title_data, colWidths=[194*mm], rowHeights=[5*mm])
+    # 書名（field-13 自動印字）
+    book_title_data = [[Paragraph(f"<b>書名:</b> {_safe_str(data.get('field-13'))}", bold_style)]]
+    book_title_table = Table(book_title_data, colWidths=[194 * mm], rowHeights=[5 * mm])
     book_title_table.setStyle(TableStyle([
-        ('BOX', (0,0), (-1,-1), 0.5, colors.black),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 2),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('PADDING', (0, 0), (-1, -1), 1.5),
     ]))
     story.append(book_title_table)
-    story.append(Spacer(1, 1 * mm))
+    story.append(Spacer(1, 0.8 * mm))
 
-    pasting_headers = [
-        Paragraph("<b>面掛</b>", bold_style),
-        Paragraph("<b>摘要</b>", bold_style),
-        Paragraph("<b>面掛</b>", bold_style),
-        Paragraph("<b>摘要</b>", bold_style),
-        Paragraph("<b>備考</b>", bold_style)
+    # 総頁数 / 折数（32P,16P,8P,4P,2P）/ 合計台数
+    spec_data = [
+        [
+            Paragraph(f"<b>総頁数:</b> {_safe_str(data.get('field-82'))}", normal_style),
+            Paragraph(f"<b>折数:</b> {_format_fold_breakdown(data)}", normal_style),
+            Paragraph(f"<b>合計台数:</b> {_safe_str(data.get('field-35'))}", normal_style),
+        ]
     ]
-    pasting_rows = [pasting_headers]
-    menkake_cell_text = " " * 5 + "×" + " " * 5
-    for i in range(10):
-        pasting_rows.append([
-            Paragraph(menkake_cell_text, center_style),
+    spec_table = Table(spec_data, colWidths=[34 * mm, 124 * mm, 36 * mm], rowHeights=[5 * mm])
+    spec_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('PADDING', (0, 0), (-1, -1), 1.5),
+    ]))
+    story.append(spec_table)
+    story.append(Spacer(1, 0.8 * mm))
+
+    # 表組①（手書き用・枠のみ・面掛｜備考｜面掛｜備考・4列×10段・行高さ 0.9cm = 9mm）
+    t1_headers = [
+        Paragraph("<b>面掛</b>", bold_style),
+        Paragraph("<b>備考</b>", bold_style),
+        Paragraph("<b>面掛</b>", bold_style),
+        Paragraph("<b>備考</b>", bold_style),
+    ]
+    t1_rows = [t1_headers]
+    for _ in range(10):
+        t1_rows.append([
             Paragraph("", normal_style),
-            Paragraph(menkake_cell_text, center_style),
+            Paragraph("", normal_style),
             Paragraph("", normal_style),
             Paragraph("", normal_style),
         ])
 
-    pasting_table = Table(
-        pasting_rows,
-        colWidths=[38*mm, 22*mm, 38*mm, 22*mm, 74*mm],
-        rowHeights=[6.5*mm] * 11
+    t1_table = Table(
+        t1_rows,
+        colWidths=[42 * mm, 55 * mm, 42 * mm, 55 * mm],
+        rowHeights=[4.8 * mm] + [9.0 * mm] * 10
     )
-    pasting_table.setStyle(TableStyle([
-        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-        ('BACKGROUND', (0,0), (0,0), colors.whitesmoke),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('PADDING', (0,0), (-1,-1), 1),
+    t1_table.setStyle(TableStyle([
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.whitesmoke),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('PADDING', (0, 0), (-1, -1), 1.5),
     ]))
-    story.append(pasting_table)
-    story.append(Spacer(1, 1 * mm))
+    story.append(t1_table)
+    story.append(Spacer(1, 0.8 * mm))
 
-    note_blank = " " * 55
-    note_data = [[Paragraph(f"<b>注意事項:</b> {note_blank}", normal_style)]]
-    note_table = Table(note_data, colWidths=[194*mm], rowHeights=[30*mm])
-    note_table.setStyle(TableStyle([
-        ('BOX', (0,0), (-1,-1), 0.5, colors.black),
-        ('VALIGN', (0,0), (-1,-1), 'TOP'),
-        ('PADDING', (0,0), (-1,-1), 3),
+    # 注意事項（高さ 2.0cm = 20mm）
+    note_data1 = [[Paragraph("<b>注意事項:</b>", normal_style)]]
+    note_table1 = Table(note_data1, colWidths=[194 * mm], rowHeights=[20.0 * mm])
+    note_table1.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('PADDING', (0, 0), (-1, -1), 2),
     ]))
-    story.append(note_table)
-    story.append(Spacer(1, 4 * mm))
+    story.append(note_table1)
+    story.append(Spacer(1, 1.0 * mm))
 
-    space_25cm = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-    work_date_str = f"<b>作業日:</b>{space_25cm}年{space_25cm}月{space_25cm}日"
-
+    # 作業日 枠（手書き記入用・年月日空欄）
+    space_ym = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+    work_date_str = f"<b>作業日:</b>{space_ym}年{space_ym}月{space_ym}日"
     work_date_data = [[Paragraph(work_date_str, normal_style)]]
-    work_date_table = Table(work_date_data, colWidths=[194*mm], rowHeights=[5*mm])
+    work_date_table = Table(work_date_data, colWidths=[194 * mm], rowHeights=[5.0 * mm])
     work_date_table.setStyle(TableStyle([
-        ('BOX', (0,0), (-1,-1), 0.5, colors.black),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 2),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('PADDING', (0, 0), (-1, -1), 1.5),
     ]))
     story.append(work_date_table)
-    story.append(Spacer(1, 1 * mm))
+    story.append(Spacer(1, 0.8 * mm))
 
+    # 表組②（手書き用空欄・現況のまま・高さ 1.2cm = 12mm）
     sub_headers = [
-        Paragraph("<b>No</b>", bold_center_7pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_7pt),
-        Paragraph("<b>No</b>", bold_center_7pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_7pt),
-        Paragraph("<b>No</b>", bold_center_7pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_7pt),
-        Paragraph("<b>No</b>", bold_center_7pt), Paragraph("<b>担当</b>", center_style), Paragraph("<b>折メーター</b>", center_style), Paragraph("<b>折損</b>", bold_center_7pt)
+        Paragraph("<b>No</b>", bold_center_65pt), Paragraph("<b>担当</b>", center_65pt), Paragraph("<b>折メーター</b>", center_65pt), Paragraph("<b>折損</b>", bold_center_65pt),
+        Paragraph("<b>No</b>", bold_center_65pt), Paragraph("<b>担当</b>", center_65pt), Paragraph("<b>折メーター</b>", center_65pt), Paragraph("<b>折損</b>", bold_center_65pt),
+        Paragraph("<b>No</b>", bold_center_65pt), Paragraph("<b>担当</b>", center_65pt), Paragraph("<b>折メーター</b>", center_65pt), Paragraph("<b>折損</b>", bold_center_65pt),
+        Paragraph("<b>No</b>", bold_center_65pt), Paragraph("<b>担当</b>", center_65pt), Paragraph("<b>折メーター</b>", center_65pt), Paragraph("<b>折損</b>", bold_center_65pt),
     ]
     sub_rows = [sub_headers]
-
     for r in range(10):
         sub_rows.append([
-            Paragraph(str(r + 1), center_7pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_7pt),
-            Paragraph(str(r + 11), center_7pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_7pt),
-            Paragraph(str(r + 21), center_7pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_7pt),
-            Paragraph(str(r + 31), center_7pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_7pt),
+            Paragraph(str(r + 1), center_65pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_65pt),
+            Paragraph(str(r + 11), center_65pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_65pt),
+            Paragraph(str(r + 21), center_65pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_65pt),
+            Paragraph(str(r + 31), center_65pt), Paragraph("", normal_style), Paragraph("", normal_style), Paragraph("", center_65pt),
         ])
 
     sub_col_widths = [
-        7.5*mm, 13*mm, 19*mm, 9*mm,
-        7.5*mm, 13*mm, 19*mm, 9*mm,
-        7.5*mm, 13*mm, 19*mm, 9*mm,
-        7.5*mm, 13*mm, 19*mm, 9*mm
+        7.5 * mm, 13 * mm, 19 * mm, 9 * mm,
+        7.5 * mm, 13 * mm, 19 * mm, 9 * mm,
+        7.5 * mm, 13 * mm, 19 * mm, 9 * mm,
+        7.5 * mm, 13 * mm, 19 * mm, 9 * mm,
     ]
     sub_table = Table(
         sub_rows,
         colWidths=sub_col_widths,
-        rowHeights=[5.2*mm] * 11
+        rowHeights=[4.8 * mm] + [12.0 * mm] * 10
     )
     sub_table.setStyle(TableStyle([
-        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-        ('BACKGROUND', (0,0), (0,0), colors.whitesmoke),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('PADDING', (0,0), (-1,-1), 1),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.whitesmoke),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('PADDING', (0, 0), (-1, -1), 1),
     ]))
     story.append(sub_table)
-    story.append(Spacer(1, 1 * mm))
+    story.append(Spacer(1, 0.8 * mm))
 
-    note_data2 = [[Paragraph(f"<b>注意事項:</b> {note_blank}", normal_style)]]
-    note_table2 = Table(note_data2, colWidths=[194*mm], rowHeights=[25*mm])
+    # 注意事項（高さ 2.0cm = 20mm）
+    note_data2 = [[Paragraph("<b>注意事項:</b>", normal_style)]]
+    note_table2 = Table(note_data2, colWidths=[194 * mm], rowHeights=[20.0 * mm])
     note_table2.setStyle(TableStyle([
-        ('BOX', (0,0), (-1,-1), 0.5, colors.black),
-        ('VALIGN', (0,0), (-1,-1), 'TOP'),
-        ('PADDING', (0,0), (-1,-1), 3),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('PADDING', (0, 0), (-1, -1), 2),
     ]))
     story.append(note_table2)
 
+    # --- 2頁目: 貼り込み表 ---
     story.append(PageBreak())
 
     story.append(Paragraph("<b>貼り込み表</b>", title_style))
     story.append(Spacer(1, 2 * mm))
 
-    work_date_pasting = f"<b>作業日:</b>{space_25cm}年{space_25cm}月{space_25cm}日"
+    work_date_pasting = f"<b>作業日:</b>{space_ym}年{space_ym}月{space_ym}日"
 
     pasting_info_data = [
         [
-            Paragraph("<b>書名:</b>               ", normal_style),
-            Paragraph(f"<b>部数:</b> {data.get('field-4', '500')} 部", normal_style),
-            Paragraph(work_date_pasting, normal_style)
+            Paragraph(f"<b>書名:</b> {_safe_str(data.get('field-13'))}", normal_style),
+            Paragraph(f"<b>部数:</b> {_safe_str(data.get('field-4', '500'))} 部", normal_style),
+            Paragraph(work_date_pasting, normal_style),
         ]
     ]
-    pasting_info_table = Table(pasting_info_data, colWidths=[84*mm, 45*mm, 65*mm], rowHeights=[6*mm])
+    pasting_info_table = Table(pasting_info_data, colWidths=[84 * mm, 45 * mm, 65 * mm], rowHeights=[6 * mm])
     pasting_info_table.setStyle(TableStyle([
-        ('BOX', (0,0), (-1,-1), 0.5, colors.black),
-        ('BACKGROUND', (0,0), (-1,-1), colors.whitesmoke),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 3),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.whitesmoke),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('PADDING', (0, 0), (-1, -1), 2.5),
     ]))
     story.append(pasting_info_table)
     story.append(Spacer(1, 2 * mm))
@@ -1139,16 +1183,16 @@ def generate_menkake_pdf(data):
         Paragraph("<b>本数</b>", bold_style),
         Paragraph("<b>半端</b>", bold_style),
         Paragraph("<b>ヤレ枚数</b>", bold_style),
-        Paragraph("<b>備考</b>", bold_style)
+        Paragraph("<b>備考</b>", bold_style),
     ]
     pasting_rows2 = [pasting_headers2]
 
-    nbsp18 = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-    pasting_cell_text = f"{nbsp18}折〜{nbsp18}折"
+    nbsp14 = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+    pasting_cell_text = f"{nbsp14}折〜{nbsp14}折"
 
-    for i in range(24):
+    for _ in range(24):
         pasting_rows2.append([
-            Paragraph(pasting_cell_text, normal_style),
+            Paragraph(pasting_cell_text, center_style),
             Paragraph("本", right_style),
             Paragraph("本", right_style),
             Paragraph("枚", right_style),
@@ -1157,15 +1201,16 @@ def generate_menkake_pdf(data):
 
     pasting_table2 = Table(
         pasting_rows2,
-        colWidths=[60*mm, 24.5*mm, 24.5*mm, 24.5*mm, 60.5*mm],
-        rowHeights=[9.2*mm] * 25
+        colWidths=[60 * mm, 24.5 * mm, 24.5 * mm, 24.5 * mm, 60.5 * mm],
+        rowHeights=[9.2 * mm] * 25
     )
     pasting_table2.setStyle(TableStyle([
-        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-        ('BACKGROUND', (0,0), (0,0), colors.whitesmoke),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('ALIGN', (1,1), (3,-1), 'RIGHT'),
-        ('PADDING', (0,0), (-1,-1), 2),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.whitesmoke),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+        ('ALIGN', (1, 1), (3, -1), 'RIGHT'),
+        ('PADDING', (0, 0), (-1, -1), 2),
     ]))
     story.append(pasting_table2)
 
@@ -1222,7 +1267,7 @@ if input_order_no:
 
         with col_btn2:
             st.markdown("#### 📋 面掛表・貼り込み表（全2頁）")
-            st.write("面掛表・折メーター表 ＆ 貼り込み表の2頁構成")
+            st.write("面掛表・表組①(0.9cm)・表組②(1.2cm)・注意事項(2cm) ＆ 貼り込み表")
             menkake_pdf_bytes = generate_menkake_pdf(record_data)
             menkake_xlsx_bytes = generate_menkake_excel(record_data)
 
