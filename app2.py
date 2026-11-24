@@ -108,7 +108,7 @@ def _format_fold_breakdown(data):
         f"4P:{_safe_str(data.get('field-33'), '-')}",
         f"2P:{_safe_str(data.get('field-34'), '-')}",
     ]
-    return " / ".join(parts)
+    return "  ".join(parts)
 
 
 # ==========================================
@@ -116,8 +116,7 @@ def _format_fold_breakdown(data):
 # ==========================================
 EXCEL_FONT_NAME = "Meiryo UI"
 
-FONT_TITLE_CARD = Font(name=EXCEL_FONT_NAME, size=13, bold=True, color="111827")
-FONT_TITLE_MENKAKE = Font(name=EXCEL_FONT_NAME, size=13, bold=True, color="111827")
+FONT_TITLE_14 = Font(name=EXCEL_FONT_NAME, size=14, bold=True, color="111827")
 FONT_MK_HDR_BOLD = Font(name=EXCEL_FONT_NAME, size=11, bold=True, color="111827")
 FONT_BOLD = Font(name=EXCEL_FONT_NAME, size=9, bold=True, color="111827")
 FONT_NORMAL = Font(name=EXCEL_FONT_NAME, size=9, bold=False, color="111827")
@@ -218,7 +217,7 @@ def generate_progress_card_excel(data):
 
     for c in range(1, 19):
         cell = ws.cell(row=1, column=c)
-        cell.font = FONT_TITLE_CARD if 10 <= c <= 15 else FONT_BOLD
+        cell.font = FONT_TITLE_14 if 10 <= c <= 15 else FONT_BOLD
         cell.fill = FILL_HEADER_GRAY if 10 <= c <= 15 else FILL_LABEL_BG
         cell.alignment = ALIGN_CENTER if 10 <= c <= 15 else ALIGN_LEFT
     _apply_box_border(ws, 1, 1, 18, 1)
@@ -471,7 +470,7 @@ def generate_progress_card_pdf(data):
         topMargin=6 * mm, bottomMargin=6 * mm
     )
 
-    title_style = ParagraphStyle('CardTitle', fontName=DEFAULT_FONT, fontSize=12, leading=15, alignment=1)
+    title_style = ParagraphStyle('CardTitle14', fontName=DEFAULT_FONT, fontSize=14, leading=17, alignment=1)
     normal_style = ParagraphStyle('CardNormal', fontName=DEFAULT_FONT, fontSize=8, leading=10.5)
     bold_style = ParagraphStyle('CardBold', fontName=DEFAULT_FONT, fontSize=8, leading=10.5)
     center_style = ParagraphStyle('CardCenter', fontName=DEFAULT_FONT, fontSize=7.5, leading=9, alignment=1)
@@ -485,17 +484,17 @@ def generate_progress_card_pdf(data):
             Paragraph(f"<b>納期:</b> {_safe_str(data.get('field-52'))}", normal_style),
             Paragraph(f"<b>見本:</b> {_safe_str(data.get('field-54'))}", normal_style),
             Paragraph(f"<b>配本:</b> {_safe_str(data.get('field-56'))}", normal_style),
-            Paragraph("製本進行カード (1/2)", title_style),
+            Paragraph("<b>製本進行カード (1/2)</b>", title_style),
             Paragraph(f"<b>受注番号:</b> {_safe_str(data.get('field-2'))}", bold_style),
         ]
     ]
-    header_table = Table(header_data, colWidths=[38*mm, 30*mm, 30*mm, 58*mm, 38*mm], rowHeights=[9.5*mm])
+    header_table = Table(header_data, colWidths=[36*mm, 28*mm, 28*mm, 64*mm, 38*mm], rowHeights=[10*mm])
     header_table.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('BOX', (0,0), (-1,-1), 1, colors.black),
         ('INNERGRID', (0,0), (-1,-1), 0.5, colors.grey),
         ('BACKGROUND', (3,0), (3,0), colors.lightgrey),
-        ('PADDING', (0,0), (-1,-1), 3),
+        ('PADDING', (0,0), (-1,-1), 2.5),
     ]))
     story.append(header_table)
     story.append(Spacer(1, 2 * mm))
@@ -680,7 +679,7 @@ def generate_menkake_excel(data):
     wb = Workbook()
     ws = wb.active
     ws.title = "面掛表_貼り込み表"
-    _configure_a4_portrait_print(ws, fit_h=2, margin_lr=0.2, margin_tb=0.12)
+    _configure_a4_portrait_print(ws, fit_h=2, margin_lr=0.2, margin_tb=0.15)
 
     # 16列共通グリッド（下段4ブロック×4列=16列を基準）
     # [No, 担当, 折メーター, 折損] × 4
@@ -693,13 +692,13 @@ def generate_menkake_excel(data):
     # ==========================================
     # 1頁目: 面掛表 ＆ 表組①(0.8cm) ＆ 注意事項(1.3cm) ＆ 作業日 ＆ 表組②(1.0cm) ＆ 注意事項(1.3cm)
     # ==========================================
-    # --- 1行目: タイトル ---
-    ws.row_dimensions[1].height = 18
+    # --- 1行目: タイトル（14pt・太字） ---
+    ws.row_dimensions[1].height = 20
     ws.merge_cells("A1:P1")
     ws["A1"] = "面 掛 表"
     for c in range(1, 17):
         cell = ws.cell(row=1, column=c)
-        cell.font = FONT_TITLE_MENKAKE
+        cell.font = FONT_TITLE_14
         cell.fill = FILL_HEADER_GRAY
         cell.alignment = ALIGN_CENTER
     _apply_box_border(ws, 1, 1, 16, 1)
@@ -739,7 +738,7 @@ def generate_menkake_excel(data):
         cell.alignment = ALIGN_CENTER if is_label else ALIGN_LEFT
         cell.border = BORDER_GRID
 
-    # 4行目: 総頁数 / 折数内訳（「折数：」ラベルなし）/ 合計台数（11pt・太字）
+    # 4行目: 総頁数 / 折数内訳（「折数：」ラベルなし・各〇Pに2文字スペース）/ 合計台数（11pt・太字）
     ws.row_dimensions[4].height = 19.5
     ws.merge_cells("A4:B4")
     ws.merge_cells("C4:D4")
@@ -882,12 +881,12 @@ def generate_menkake_excel(data):
     # ==========================================
     # 2頁目: 貼り込み表 ＋ 注意事項(1.3cm)
     # ==========================================
-    ws.row_dimensions[30].height = 20
+    ws.row_dimensions[30].height = 22
     ws.merge_cells("A30:P30")
     ws["A30"] = "貼 り 込 み 表"
     for c in range(1, 17):
         cell = ws.cell(row=30, column=c)
-        cell.font = FONT_TITLE_MENKAKE
+        cell.font = FONT_TITLE_14
         cell.fill = FILL_HEADER_GRAY
         cell.alignment = ALIGN_CENTER
     _apply_box_border(ws, 1, 30, 16, 30)
@@ -1007,9 +1006,8 @@ def generate_menkake_pdf(data):
         topMargin=3.0 * mm, bottomMargin=3.0 * mm
     )
 
-    title_style = ParagraphStyle('Title13', fontName=DEFAULT_FONT, fontSize=13, leading=15, alignment=1)
+    title_style = ParagraphStyle('Title14Bold', fontName=DEFAULT_FONT, fontSize=14, leading=17, alignment=1)
     hdr11_style = ParagraphStyle('Hdr11Bold', fontName=DEFAULT_FONT, fontSize=11, leading=13)
-    hdr11_center = ParagraphStyle('Hdr11Center', fontName=DEFAULT_FONT, fontSize=11, leading=13, alignment=1)
     normal_style = ParagraphStyle('Normal7', fontName=DEFAULT_FONT, fontSize=7, leading=8.5)
     bold_style = ParagraphStyle('Bold7', fontName=DEFAULT_FONT, fontSize=7, leading=8.5)
     center_style = ParagraphStyle('Center7', fontName=DEFAULT_FONT, fontSize=7, leading=8.5, alignment=1)
@@ -1025,7 +1023,6 @@ def generate_menkake_pdf(data):
     story.append(Spacer(1, 0.6 * mm))
 
     # ヘッダー部 3行（11pt・太字）
-    # 1行目: 受注番号 / 出版社名
     top_info_data = [
         [
             Paragraph(f"<b>受注番号:</b> {_safe_str(data.get('field-2'))}", hdr11_style),
@@ -1042,7 +1039,6 @@ def generate_menkake_pdf(data):
     story.append(top_info_table)
     story.append(Spacer(1, 0.5 * mm))
 
-    # 2行目: 書名（11pt・太字）
     book_title_data = [[Paragraph(f"<b>書名:</b> {_safe_str(data.get('field-13'))}", hdr11_style)]]
     book_title_table = Table(book_title_data, colWidths=[194 * mm], rowHeights=[6.0 * mm])
     book_title_table.setStyle(TableStyle([
@@ -1053,7 +1049,6 @@ def generate_menkake_pdf(data):
     story.append(book_title_table)
     story.append(Spacer(1, 0.5 * mm))
 
-    # 3行目: 総頁数 / 折数内訳（「折数：」ラベルなし）/ 合計台数（11pt・太字）
     spec_data = [
         [
             Paragraph(f"<b>総頁数:</b> {_safe_str(data.get('field-82'))}", hdr11_style),
@@ -1061,7 +1056,7 @@ def generate_menkake_pdf(data):
             Paragraph(f"<b>合計台数:</b> {_safe_str(data.get('field-35'))}", hdr11_style),
         ]
     ]
-    spec_table = Table(spec_data, colWidths=[38 * mm, 118 * mm, 38 * mm], rowHeights=[6.0 * mm])
+    spec_table = Table(spec_data, colWidths=[34 * mm, 124 * mm, 36 * mm], rowHeights=[6.0 * mm])
     spec_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
         ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.grey),
