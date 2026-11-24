@@ -15,6 +15,7 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase.pdfmetrics import registerFontFamily
 
 # ==========================================
 # ページ基本設定
@@ -23,7 +24,7 @@ st.set_page_config(page_title="製本帳票ツール（進行カード・面掛�
 st.title("🖨️ 製本帳票（進行カード・面掛表）")
 
 # ==========================================
-# @pocket認証設定 (Secretsから取得)
+# DBpocket認証設定 (Secretsから取得)
 # ==========================================
 if "pocket" in st.secrets:
     POCKET_API_KEY = st.secrets["pocket"].get("api_key", "XZtsg3OrDFOh0VayOI83j84Oc3YIzm7oujbI0T08")
@@ -35,11 +36,18 @@ else:
 APP_ID = 34
 
 # ==========================================
-# 日本語フォント登録 (PDF用)
+# 日本語フォント登録 (PDF用・Bold対応)
 # ==========================================
 FONT_PATH = "NotoSansJP-Regular.ttf"
+BOLD_FONT_PATH = "NotoSansJP-Bold.ttf"
+
 if os.path.exists(FONT_PATH):
     pdfmetrics.registerFont(TTFont('Japanese', FONT_PATH))
+    if os.path.exists(BOLD_FONT_PATH):
+        pdfmetrics.registerFont(TTFont('Japanese-Bold', BOLD_FONT_PATH))
+        registerFontFamily('Japanese', normal='Japanese', bold='Japanese-Bold')
+    else:
+        registerFontFamily('Japanese', normal='Japanese', bold='Japanese')
     DEFAULT_FONT = 'Japanese'
 else:
     DEFAULT_FONT = 'Helvetica'
@@ -100,7 +108,7 @@ def _format_total_pages(data):
     return f"{page_part}{FOLD_PAGE_GUIDE}"
 
 
-def _format_fold_breakdown(data):
+def _format_fold_breakdown(data, for_pdf=False):
     parts = [
         f"32P:{_safe_str(data.get('field-30'), '-')}",
         f"16P:{_safe_str(data.get('field-31'), '-')}",
@@ -108,7 +116,9 @@ def _format_fold_breakdown(data):
         f"4P:{_safe_str(data.get('field-33'), '-')}",
         f"2P:{_safe_str(data.get('field-34'), '-')}",
     ]
-    return "  ".join(parts)
+    # PDFのParagraphは連続空白が縮むため &nbsp; 4つ（全角2文字相当）、Excelは全角スペース2つ
+    sep = "&nbsp;&nbsp;&nbsp;&nbsp;" if for_pdf else "  "
+    return sep.join(parts)
 
 
 # ==========================================
@@ -693,7 +703,7 @@ def generate_menkake_excel(data):
     # 1頁目: 面掛表 ＆ 表組①(0.8cm) ＆ 注意事項(1.3cm) ＆ 作業日 ＆ 表組②(1.0cm) ＆ 注意事項(1.3cm)
     # ==========================================
     # --- 1行目: タイトル（14pt・太字） ---
-    ws.row_dimensions[1].height = 20
+    ws.row_dimensions[1].height = 24
     ws.merge_cells("A1:P1")
     ws["A1"] = "面 掛 表"
     for c in range(1, 17):
@@ -705,7 +715,7 @@ def generate_menkake_excel(data):
 
     # --- 2〜4行目: ヘッダー部 3行（11pt・太字） ---
     # 2行目: 受注番号 / 出版社名
-    ws.row_dimensions[2].height = 19.5
+    ws.row_dimensions[2].height = 20
     ws.merge_cells("A2:B2")
     ws.merge_cells("C2:H2")
     ws.merge_cells("I2:J2")
@@ -725,7 +735,7 @@ def generate_menkake_excel(data):
         cell.border = BORDER_GRID
 
     # 3行目: 書名
-    ws.row_dimensions[3].height = 19.5
+    ws.row_dimensions[3].height = 20
     ws.merge_cells("A3:B3")
     ws.merge_cells("C3:P3")
     ws["A3"] = "書名"
@@ -739,14 +749,14 @@ def generate_menkake_excel(data):
         cell.border = BORDER_GRID
 
     # 4行目: 総頁数 / 折数内訳（「折数：」ラベルなし・各〇Pに2文字スペース）/ 合計台数（11pt・太字）
-    ws.row_dimensions[4].height = 19.5
+    ws.row_dimensions[4].height = 20
     ws.merge_cells("A4:B4")
     ws.merge_cells("C4:D4")
     ws.merge_cells("E4:M4")
     ws.merge_cells("N4:O4")
     ws["A4"] = "総頁数"
     ws["C4"] = _safe_str(data.get("field-82"))
-    ws["E4"] = _format_fold_breakdown(data)
+    ws["E4"] = _format_fold_breakdown(data, for_pdf=False)
     ws["N4"] = "合計台数"
     ws["P4"] = _safe_str(data.get("field-35"))
 
@@ -881,7 +891,7 @@ def generate_menkake_excel(data):
     # ==========================================
     # 2頁目: 貼り込み表 ＋ 注意事項(1.3cm)
     # ==========================================
-    ws.row_dimensions[30].height = 22
+    ws.row_dimensions[30].height = 24
     ws.merge_cells("A30:P30")
     ws["A30"] = "貼 り 込 み 表"
     for c in range(1, 17):
@@ -1006,7 +1016,7 @@ def generate_menkake_pdf(data):
         topMargin=3.0 * mm, bottomMargin=3.0 * mm
     )
 
-    title_style = ParagraphStyle('Title14Bold', fontName=DEFAULT_FONT, fontSize=14, leading=17, alignment=1)
+    title_style = ParagraphStyle('Title14Bold', fontName=DEFAULT_FONT, fontSize=14, leading=18, alignment=1)
     hdr11_style = ParagraphStyle('Hdr11Bold', fontName=DEFAULT_FONT, fontSize=11, leading=13)
     normal_style = ParagraphStyle('Normal7', fontName=DEFAULT_FONT, fontSize=7, leading=8.5)
     bold_style = ParagraphStyle('Bold7', fontName=DEFAULT_FONT, fontSize=7, leading=8.5)
@@ -1019,14 +1029,14 @@ def generate_menkake_pdf(data):
     story = []
 
     # --- 1頁目: 面掛表 ---
-    story.append(Paragraph("<b>面掛表</b>", title_style))
-    story.append(Spacer(1, 0.6 * mm))
+    story.append(Paragraph("<b>面 掛 表</b>", title_style))
+    story.append(Spacer(1, 0.8 * mm))
 
     # ヘッダー部 3行（11pt・太字）
     top_info_data = [
         [
-            Paragraph(f"<b>受注番号:</b> {_safe_str(data.get('field-2'))}", hdr11_style),
-            Paragraph(f"<b>出版社名:</b> {_safe_str(data.get('field-8'))}", hdr11_style),
+            Paragraph(f"<b>受注番号: {_safe_str(data.get('field-2'))}</b>", hdr11_style),
+            Paragraph(f"<b>出版社名: {_safe_str(data.get('field-8'))}</b>", hdr11_style),
         ]
     ]
     top_info_table = Table(top_info_data, colWidths=[97 * mm, 97 * mm], rowHeights=[6.0 * mm])
@@ -1039,7 +1049,7 @@ def generate_menkake_pdf(data):
     story.append(top_info_table)
     story.append(Spacer(1, 0.5 * mm))
 
-    book_title_data = [[Paragraph(f"<b>書名:</b> {_safe_str(data.get('field-13'))}", hdr11_style)]]
+    book_title_data = [[Paragraph(f"<b>書名: {_safe_str(data.get('field-13'))}</b>", hdr11_style)]]
     book_title_table = Table(book_title_data, colWidths=[194 * mm], rowHeights=[6.0 * mm])
     book_title_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
@@ -1051,9 +1061,9 @@ def generate_menkake_pdf(data):
 
     spec_data = [
         [
-            Paragraph(f"<b>総頁数:</b> {_safe_str(data.get('field-82'))}", hdr11_style),
-            Paragraph(f"<b>{_format_fold_breakdown(data)}</b>", hdr11_style),
-            Paragraph(f"<b>合計台数:</b> {_safe_str(data.get('field-35'))}", hdr11_style),
+            Paragraph(f"<b>総頁数: {_safe_str(data.get('field-82'))}</b>", hdr11_style),
+            Paragraph(f"<b>{_format_fold_breakdown(data, for_pdf=True)}</b>", hdr11_style),
+            Paragraph(f"<b>合計台数: {_safe_str(data.get('field-35'))}</b>", hdr11_style),
         ]
     ]
     spec_table = Table(spec_data, colWidths=[34 * mm, 124 * mm, 36 * mm], rowHeights=[6.0 * mm])
@@ -1172,7 +1182,7 @@ def generate_menkake_pdf(data):
     # --- 2頁目: 貼り込み表 ＋ 注意事項(1.3cm) ---
     story.append(PageBreak())
 
-    story.append(Paragraph("<b>貼り込み表</b>", title_style))
+    story.append(Paragraph("<b>貼 り 込 み 表</b>", title_style))
     story.append(Spacer(1, 1.2 * mm))
 
     work_date_pasting = f"<b>作業日:</b>{space_ym}年{space_ym}月{space_ym}日"
@@ -1252,12 +1262,12 @@ def generate_menkake_pdf(data):
 query_params = st.query_params
 url_order_no = query_params.get("ord", None)
 
-st.info("💡 @pocketの受注番号から、必要な帳票（製本進行カード または 面掛表・貼り込み表）を選んでPDF・Excel出力できます。")
+st.info("💡 DBpocketの受注番号から、必要な帳票（製本進行カード または 面掛表・貼り込み表）を選んでPDF・Excel出力できます。")
 
 input_order_no = st.text_input("受注番号を入力", value=url_order_no if url_order_no else "")
 
 if input_order_no:
-    with st.spinner(f"受注番号 {input_order_no} のデータを@pocketから取得中..."):
+    with st.spinner(f"受注番号 {input_order_no} のデータをDBpocketから取得中..."):
         record_data = fetch_record_by_order(input_order_no)
 
     if record_data:
