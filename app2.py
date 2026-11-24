@@ -248,7 +248,7 @@ def generate_progress_card_excel(data):
     ]
 
     for r, l_lbl, l_val, r_lbl, r_val in info_rows:
-        ws.row_dimensions[r].height = 18.5
+        ws.row_dimensions[r].height = 18.0
         ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
         ws.merge_cells(start_row=r, start_column=4, end_row=r, end_column=9)
         ws.merge_cells(start_row=r, start_column=10, end_row=r, end_column=12)
@@ -268,16 +268,16 @@ def generate_progress_card_excel(data):
             cell.border = BORDER_GRID
 
     # --- 5行目: 台割（総頁数 + 32P/16P/8P/4P/2P セル分割等間隔） + 合計台数 ---
-    ws.row_dimensions[5].height = 19.5
-    ws.merge_cells("A5:B5")   # 総頁数ラベル
-    ws.merge_cells("C5:D5")   # 総頁数値
-    ws.merge_cells("E5:F5")   # 32P
-    ws.merge_cells("G5:H5")   # 16P
-    ws.merge_cells("I5:J5")   # 8P
-    ws.merge_cells("K5:L5")   # 4P
-    ws.merge_cells("M5:N5")   # 2P
-    ws.merge_cells("O5:P5")   # 合計台数ラベル
-    ws.merge_cells("Q5:R5")   # 合計台数値
+    ws.row_dimensions[5].height = 19.0
+    ws.merge_cells("A5:B5")
+    ws.merge_cells("C5:D5")
+    ws.merge_cells("E5:F5")
+    ws.merge_cells("G5:H5")
+    ws.merge_cells("I5:J5")
+    ws.merge_cells("K5:L5")
+    ws.merge_cells("M5:N5")
+    ws.merge_cells("O5:P5")
+    ws.merge_cells("Q5:R5")
 
     fold_items = _get_fold_items(data)
     ws["A5"] = "総頁数"
@@ -298,7 +298,7 @@ def generate_progress_card_excel(data):
         cell.alignment = ALIGN_CENTER
         cell.border = BORDER_GRID
 
-    # --- 6〜7行目: 印刷/製本数・仕上仕様・寸法・付物 ---
+    # --- 6〜7行目: 印刷/製本数・合計台数・仕上寸法・付物 ---
     spec_rows = [
         (
             6,
@@ -316,7 +316,7 @@ def generate_progress_card_excel(data):
         ),
     ]
     for r, l_lbl, l_val, r_lbl, r_val in spec_rows:
-        ws.row_dimensions[r].height = 18.5
+        ws.row_dimensions[r].height = 18.0
         ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
         ws.merge_cells(start_row=r, start_column=4, end_row=r, end_column=9)
         ws.merge_cells(start_row=r, start_column=10, end_row=r, end_column=12)
@@ -335,8 +335,8 @@ def generate_progress_card_excel(data):
             cell.alignment = ALIGN_LEFT
             cell.border = BORDER_GRID
 
-    # --- 8〜9行目: 口絵/折図・半製品預かり・袋払い・仕上/背固仕様 ---
-    ws.row_dimensions[8].height = 18.5
+    # --- 8〜9行目: 仕上/背固・口絵/折図・袋払い・半製品預かり ---
+    ws.row_dimensions[8].height = 18.0
     ws.merge_cells("A8:C8")
     ws.merge_cells("D8:I8")
     ws.merge_cells("J8:L8")
@@ -353,7 +353,7 @@ def generate_progress_card_excel(data):
         cell.alignment = ALIGN_LEFT
         cell.border = BORDER_GRID
 
-    ws.row_dimensions[9].height = 18.5
+    ws.row_dimensions[9].height = 18.0
     ws.merge_cells("A9:C9")
     ws.merge_cells("D9:I9")
     ws.merge_cells("J9:L9")
@@ -371,7 +371,7 @@ def generate_progress_card_excel(data):
         cell.border = BORDER_GRID
 
     # --- 10行目: 余白 ---
-    ws.row_dimensions[10].height = 6
+    ws.row_dimensions[10].height = 5
 
     # --- 11〜16行目: 表①（1〜54 数字マス目：上5mm=14.2pt 番号 / 下7.5mm=21.3pt 手書き空欄） ---
     num_ranges = [range(1, 19), range(19, 37), range(37, 55)]
@@ -379,8 +379,8 @@ def generate_progress_card_excel(data):
     for rng in num_ranges:
         r_num = curr_t1_r
         r_memo = curr_t1_r + 1
-        ws.row_dimensions[r_num].height = 14.2   # 約5.0mm
-        ws.row_dimensions[r_memo].height = 21.3  # 約7.5mm
+        ws.row_dimensions[r_num].height = 14.2   # 5.0mm
+        ws.row_dimensions[r_memo].height = 21.3  # 7.5mm
 
         for col_offset, num in enumerate(rng):
             c = 1 + col_offset
@@ -399,32 +399,30 @@ def generate_progress_card_excel(data):
         curr_t1_r += 2
 
     # --- 17行目: 余白 ---
-    ws.row_dimensions[17].height = 6
+    ws.row_dimensions[17].height = 5
 
-    # --- 18〜27行目: 表②（パターンA：工程名(A-B)｜申送り手書き欄(C-G)｜上段:日付・下段:○○部右寄せ(H-K)｜右側空欄上下結合(L-R)） ---
+    # --- 18〜27行目: 表②（各行 +3mm追加＝上下各9.0mm=25.5pt / 1行51.0pt / 2文字年2文字月2文字日 / 3列構成[工程名・日付/○○部・申送り上部左寄せ]） ---
     memo_labels = ["丁合", "無線", "化粧", "仕上", "見本"]
     copies_str = _format_binding_copies(data)
     curr_t2_r = 18
     for lbl in memo_labels:
         r_top = curr_t2_r
         r_bot = curr_t2_r + 1
-        ws.row_dimensions[r_top].height = 18.0
-        ws.row_dimensions[r_bot].height = 18.0
+        ws.row_dimensions[r_top].height = 25.5  # 9.0mm
+        ws.row_dimensions[r_bot].height = 25.5  # 9.0mm
 
-        # 工程名(A-B)、申送り手書き欄(C-G)、右側空欄(L-R)を上下結合
+        # 工程名(A-B)と申送り欄(H-R)を上下結合
         ws.merge_cells(start_row=r_top, start_column=1, end_row=r_bot, end_column=2)
-        ws.merge_cells(start_row=r_top, start_column=3, end_row=r_bot, end_column=7)
-        ws.merge_cells(start_row=r_top, start_column=12, end_row=r_bot, end_column=18)
+        ws.merge_cells(start_row=r_top, start_column=8, end_row=r_bot, end_column=18)
 
-        # 日付・○○部欄(H-K)は上下2段
-        ws.merge_cells(start_row=r_top, start_column=8, end_row=r_top, end_column=11)
-        ws.merge_cells(start_row=r_bot, start_column=8, end_row=r_bot, end_column=11)
+        # 日付・○○部欄(C-G)は上下2段
+        ws.merge_cells(start_row=r_top, start_column=3, end_row=r_top, end_column=7)
+        ws.merge_cells(start_row=r_bot, start_column=3, end_row=r_bot, end_column=7)
 
         ws.cell(row=r_top, column=1, value=lbl)
-        ws.cell(row=r_top, column=3, value="")
-        ws.cell(row=r_top, column=8, value="  年  月  日")
-        ws.cell(row=r_bot, column=8, value=copies_str)
-        ws.cell(row=r_top, column=12, value="")
+        ws.cell(row=r_top, column=3, value="  年  月  日")
+        ws.cell(row=r_bot, column=3, value=copies_str)
+        ws.cell(row=r_top, column=8, value="申送り")
 
         for r_cur in (r_top, r_bot):
             for c in range(1, 19):
@@ -434,10 +432,6 @@ def generate_progress_card_excel(data):
                     cell.fill = FILL_LABEL_BG
                     cell.alignment = ALIGN_CENTER
                 elif 3 <= c <= 7:
-                    cell.font = FONT_NORMAL
-                    cell.fill = FILL_WHITE
-                    cell.alignment = ALIGN_TOP_LEFT
-                elif 8 <= c <= 11:
                     if r_cur == r_top:
                         cell.font = FONT_SMALL
                         cell.alignment = ALIGN_LEFT
@@ -446,61 +440,67 @@ def generate_progress_card_excel(data):
                         cell.alignment = ALIGN_RIGHT
                     cell.fill = FILL_WHITE
                 else:
-                    cell.font = FONT_NORMAL
+                    cell.font = FONT_SMALL
                     cell.fill = FILL_WHITE
                     cell.alignment = ALIGN_TOP_LEFT
                 cell.border = BORDER_GRID
 
         curr_t2_r += 2
 
-    # --- 28行目: 手書き用エリア（中永製本） ---
-    ws.row_dimensions[28].height = 54
-    ws.merge_cells("A28:B28")
-    ws.merge_cells("C28:R28")
-    ws["A28"] = "中永製本"
-    ws["C28"] = ""
+    # --- 28行目: 余白 ---
+    ws.row_dimensions[28].height = 5
 
-    for c in range(1, 19):
-        cell = ws.cell(row=28, column=c)
-        if 1 <= c <= 2:
-            cell.font = FONT_BOLD
-            cell.fill = FILL_LABEL_BG
-            cell.alignment = ALIGN_CENTER
-        else:
-            cell.font = FONT_NORMAL
-            cell.fill = FILL_WHITE
-            cell.alignment = ALIGN_TOP_LEFT
-        cell.border = BORDER_GRID
+    # --- 29行目: 表②の下 特記事項(field-45) 高さ2cm (= 56.7pt) ---
+    ws.row_dimensions[29].height = 56.7
+    ws.merge_cells("A29:B29")
+    ws.merge_cells("C29:R29")
+    ws["A29"] = "特記事項"
+    ws["C29"] = _safe_str(data.get("field-45"), "")
 
-    # 1シート内改ページ（28行目の後）
-    ws.row_breaks.append(Break(id=28))
-
-    # ==========================================
-    # 2頁目 (29行目〜): 特記事項 ＋ 工程チェックリスト ＋ 下部注意事項(3cm = 85.0pt)
-    # ==========================================
-    ws.row_dimensions[29].height = 18
-    ws.merge_cells("A29:R29")
-    ws["A29"] = "特記事項 / 申し送り欄（フリー手書きスペース）"
     for c in range(1, 19):
         cell = ws.cell(row=29, column=c)
+        is_label = 1 <= c <= 2
+        cell.font = FONT_BOLD if is_label else FONT_NORMAL
+        cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
+        cell.alignment = ALIGN_CENTER if is_label else ALIGN_TOP_LEFT
+        cell.border = BORDER_GRID
+
+    # --- 30行目: 枠線外側のフッター余白（右寄せ：作成者 ㈱中永製本） ---
+    ws.row_dimensions[30].height = 14
+    ws.merge_cells("A30:R30")
+    ws["A30"] = "作成者 ㈱中永製本"
+    ws["A30"].font = FONT_SMALL
+    ws["A30"].alignment = ALIGN_RIGHT
+
+    # 1シート内改ページ（30行目の後）
+    ws.row_breaks.append(Break(id=30))
+
+    # ==========================================
+    # 2頁目 (31行目〜): 特記事項 ＋ 工程チェックリスト ＋ 下部注意事項(3cm) ＋ フッター右寄せ
+    # ==========================================
+    ws.row_dimensions[31].height = 18
+    ws.merge_cells("A31:R31")
+    ws["A31"] = "特記事項 / 申し送り欄（フリー手書きスペース）"
+    for c in range(1, 19):
+        cell = ws.cell(row=31, column=c)
         cell.font = FONT_BOLD
         cell.fill = FILL_LABEL_BG
         cell.alignment = ALIGN_LEFT
         cell.border = BORDER_GRID
 
-    ws.row_dimensions[30].height = 52
-    ws.merge_cells("A30:R30")
-    ws["A30"] = _safe_str(data.get("field-45"), "特記事項なし")
+    ws.row_dimensions[32].height = 48
+    ws.merge_cells("A32:R32")
+    ws["A32"] = _safe_str(data.get("field-45"), "特記事項なし")
     for c in range(1, 19):
-        cell = ws.cell(row=30, column=c)
+        cell = ws.cell(row=32, column=c)
         cell.font = FONT_NORMAL
         cell.fill = FILL_WHITE
         cell.alignment = ALIGN_TOP_LEFT
         cell.border = BORDER_GRID
 
-    ws.row_dimensions[31].height = 6
+    ws.row_dimensions[33].height = 5
 
-    curr_r = 32
+    curr_r = 34
     for sec_title, items in CHECKLIST_SECTIONS:
         start_r = curr_r
         end_r = curr_r + len(items)
@@ -508,7 +508,7 @@ def generate_progress_card_excel(data):
         ws.merge_cells(start_row=start_r, start_column=1, end_row=end_r, end_column=3)
         ws.cell(row=start_r, column=1, value=sec_title)
 
-        ws.row_dimensions[start_r].height = 24
+        ws.row_dimensions[start_r].height = 23
         ws.merge_cells(start_row=start_r, start_column=4, end_row=start_r, end_column=18)
         ws.cell(row=start_r, column=4, value="作業日：  年  月  日\n担当者印：")
 
@@ -521,7 +521,7 @@ def generate_progress_card_excel(data):
 
         for idx, item_text in enumerate(items):
             r = start_r + 1 + idx
-            ws.row_dimensions[r].height = 20
+            ws.row_dimensions[r].height = 19.5
             ws.merge_cells(start_row=r, start_column=4, end_row=r, end_column=13)
             ws.merge_cells(start_row=r, start_column=14, end_row=r, end_column=18)
 
@@ -543,7 +543,7 @@ def generate_progress_card_excel(data):
         curr_r = end_r + 1
 
     # --- 2頁目 下部 注意事項（高さ 3cm = 85.0pt） ---
-    ws.row_dimensions[curr_r].height = 6
+    ws.row_dimensions[curr_r].height = 5
     note_r = curr_r + 1
     ws.row_dimensions[note_r].height = 85.0
     ws.merge_cells(start_row=note_r, start_column=1, end_row=note_r, end_column=3)
@@ -557,6 +557,14 @@ def generate_progress_card_excel(data):
         cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
         cell.alignment = ALIGN_CENTER if is_label else ALIGN_TOP_LEFT
         cell.border = BORDER_GRID
+
+    # --- 2頁目 枠線外側のフッター余白（右寄せ：作成者 ㈱中永製本） ---
+    ftr_r = note_r + 1
+    ws.row_dimensions[ftr_r].height = 14
+    ws.merge_cells(start_row=ftr_r, start_column=1, end_row=ftr_r, end_column=18)
+    ws.cell(row=ftr_r, column=1, value="作成者 ㈱中永製本")
+    ws.cell(row=ftr_r, column=1).font = FONT_SMALL
+    ws.cell(row=ftr_r, column=1).alignment = ALIGN_RIGHT
 
     buf = io.BytesIO()
     wb.save(buf)
@@ -582,9 +590,11 @@ def generate_progress_card_pdf(data):
     center_style = ParagraphStyle('CardCenter', fontName=DEFAULT_FONT, fontSize=7, leading=8.5, alignment=1)
     bold_center_style = ParagraphStyle('CardBoldCenter', fontName=BOLD_FONT, fontSize=7, leading=8.5, alignment=1)
     right_bold_style = ParagraphStyle('CardRightBold', fontName=BOLD_FONT, fontSize=7.5, leading=9, alignment=2)
+    footer_right_style = ParagraphStyle('FooterRight', fontName=DEFAULT_FONT, fontSize=7.5, leading=9, alignment=2)
     chk_style = ParagraphStyle('ChkItem', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5)
 
     story = []
+    nbsp2 = "&nbsp;&nbsp;"
 
     # --- 1頁目 ---
     header_data = [
@@ -605,7 +615,7 @@ def generate_progress_card_pdf(data):
         ('PADDING', (0,0), (-1,-1), 2.0),
     ]))
     story.append(header_table)
-    story.append(Spacer(1, 1.5 * mm))
+    story.append(Spacer(1, 1.2 * mm))
 
     info_top_data = [
         [
@@ -627,16 +637,16 @@ def generate_progress_card_pdf(data):
             Paragraph(f"¥{_safe_str(data.get('field-20'))}", normal_style),
         ],
     ]
-    info_top_table = Table(info_top_data, colWidths=[22*mm, 72*mm, 22*mm, 78*mm], rowHeights=[6.2*mm] * 3)
+    info_top_table = Table(info_top_data, colWidths=[22*mm, 72*mm, 22*mm, 78*mm], rowHeights=[6.0*mm] * 3)
     info_top_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
         ('BACKGROUND', (2,0), (2,-1), colors.whitesmoke),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 2.0),
+        ('PADDING', (0,0), (-1,-1), 1.8),
     ]))
     story.append(info_top_table)
-    story.append(Spacer(1, 1.0 * mm))
+    story.append(Spacer(1, 0.9 * mm))
 
     # 台割行（総頁数 + 32P/16P/8P/4P/2P セル分割等間隔 + 合計台数）
     fold_items = _get_fold_items(data)
@@ -655,7 +665,7 @@ def generate_progress_card_pdf(data):
     fold_row_table = Table(
         fold_row_data,
         colWidths=[18*mm, 14*mm, 24*mm, 24*mm, 24*mm, 24*mm, 24*mm, 42*mm],
-        rowHeights=[6.5 * mm]
+        rowHeights=[6.2 * mm]
     )
     fold_row_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
@@ -664,7 +674,7 @@ def generate_progress_card_pdf(data):
         ('PADDING', (0,0), (-1,-1), 1.5),
     ]))
     story.append(fold_row_table)
-    story.append(Spacer(1, 1.0 * mm))
+    story.append(Spacer(1, 0.9 * mm))
 
     info_bot_data = [
         [
@@ -692,16 +702,16 @@ def generate_progress_card_pdf(data):
             Paragraph(_safe_str(data.get('field-81')), normal_style),
         ],
     ]
-    info_bot_table = Table(info_bot_data, colWidths=[22*mm, 72*mm, 22*mm, 78*mm], rowHeights=[6.2*mm] * 4)
+    info_bot_table = Table(info_bot_data, colWidths=[22*mm, 72*mm, 22*mm, 78*mm], rowHeights=[6.0*mm] * 4)
     info_bot_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
         ('BACKGROUND', (2,0), (2,-1), colors.whitesmoke),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 2.0),
+        ('PADDING', (0,0), (-1,-1), 1.8),
     ]))
     story.append(info_bot_table)
-    story.append(Spacer(1, 1.8 * mm))
+    story.append(Spacer(1, 1.4 * mm))
 
     # --- 表①（1〜54 数字マス目：上5mm番号 / 下7.5mm手書き空欄＝1段12.5mm×3段） ---
     num_ranges = [range(1, 19), range(19, 37), range(37, 55)]
@@ -728,11 +738,12 @@ def generate_progress_card_pdf(data):
     num_grid_table = Table(t1_rows, colWidths=[10.77 * mm] * 18, rowHeights=t1_heights)
     num_grid_table.setStyle(TableStyle(t1_style_cmds))
     story.append(num_grid_table)
-    story.append(Spacer(1, 1.8 * mm))
+    story.append(Spacer(1, 1.4 * mm))
 
-    # --- 表②（パターンA：工程名 18mm ｜ 申送り手書き欄 58mm ｜ 上段:日付・下段:○○部右寄せ 38mm ｜ 右側空欄 80mm） ---
+    # --- 表②（各行 +3mm追加＝上下各9.0mm/合計18.0mm・2文字年2文字月2文字日・3列[工程名18mm|日付/部数38mm|申送り138mm]） ---
     memo_labels = ["丁合", "無線", "化粧", "仕上", "見本"]
     copies_str = _format_binding_copies(data)
+    date_2char_blank = f"{nbsp2}年{nbsp2}月{nbsp2}日"
     t2_rows = []
     t2_heights = []
     t2_style_cmds = [
@@ -741,66 +752,75 @@ def generate_progress_card_pdf(data):
     ]
     cur_t2 = 0
     for lbl in memo_labels:
-        # 上段（7.5mm）：工程名(span) | 申送り手書き欄(span) | 日付手書き部 | 右側空欄(span)
+        # 上段（9.0mm）：工程名(span) | 日付（2文字年2文字月2文字日） | 申送り（上部左寄せ・span）
         t2_rows.append([
             Paragraph(f"<b>{lbl}</b>", bold_center_style),
-            Paragraph("", normal_style),
-            Paragraph("年   月   日", normal_style),
-            Paragraph("", normal_style),
+            Paragraph(date_2char_blank, normal_style),
+            Paragraph("申送り", normal_style),
         ])
-        t2_heights.append(7.5 * mm)
+        t2_heights.append(9.0 * mm)
         t2_style_cmds.append(('BACKGROUND', (0, cur_t2), (0, cur_t2), colors.whitesmoke))
-        t2_style_cmds.append(('VALIGN', (0, cur_t2), (1, cur_t2), 'MIDDLE'))
-        t2_style_cmds.append(('VALIGN', (2, cur_t2), (2, cur_t2), 'MIDDLE'))
+        t2_style_cmds.append(('VALIGN', (0, cur_t2), (0, cur_t2), 'MIDDLE'))
+        t2_style_cmds.append(('VALIGN', (1, cur_t2), (1, cur_t2), 'MIDDLE'))
+        t2_style_cmds.append(('ALIGN', (1, cur_t2), (1, cur_t2), 'LEFT'))
+        t2_style_cmds.append(('VALIGN', (2, cur_t2), (2, cur_t2), 'TOP'))
         t2_style_cmds.append(('ALIGN', (2, cur_t2), (2, cur_t2), 'LEFT'))
-        t2_style_cmds.append(('VALIGN', (3, cur_t2), (3, cur_t2), 'TOP'))
         cur_t2 += 1
 
-        # 下段（7.5mm）：工程名(span) | 申送り手書き欄(span) | ○○部 右寄せ | 右側空欄(span)
+        # 下段（9.0mm）：工程名(span) | ○○部 右寄せ | 申送り（span）
         t2_rows.append([
             Paragraph("", bold_center_style),
-            Paragraph("", normal_style),
             Paragraph(copies_str, right_bold_style),
             Paragraph("", normal_style),
         ])
-        t2_heights.append(7.5 * mm)
+        t2_heights.append(9.0 * mm)
         t2_style_cmds.append(('BACKGROUND', (0, cur_t2), (0, cur_t2), colors.whitesmoke))
-        t2_style_cmds.append(('VALIGN', (2, cur_t2), (2, cur_t2), 'MIDDLE'))
-        t2_style_cmds.append(('ALIGN', (2, cur_t2), (2, cur_t2), 'RIGHT'))
+        t2_style_cmds.append(('VALIGN', (1, cur_t2), (1, cur_t2), 'MIDDLE'))
+        t2_style_cmds.append(('ALIGN', (1, cur_t2), (1, cur_t2), 'RIGHT'))
         cur_t2 += 1
 
-        # 工程名・申送り手書き欄・右側空欄を上下結合、日付/部数欄は上下分割線を引く
+        # 工程名・申送り欄を上下結合、日付/部数欄は上下分割線を引く
         t2_style_cmds.append(('SPAN', (0, cur_t2 - 2), (0, cur_t2 - 1)))
-        t2_style_cmds.append(('SPAN', (1, cur_t2 - 2), (1, cur_t2 - 1)))
-        t2_style_cmds.append(('SPAN', (3, cur_t2 - 2), (3, cur_t2 - 1)))
-        t2_style_cmds.append(('LINEBELOW', (2, cur_t2 - 2), (2, cur_t2 - 2), 0.5, colors.grey))
+        t2_style_cmds.append(('SPAN', (2, cur_t2 - 2), (2, cur_t2 - 1)))
+        t2_style_cmds.append(('LINEBELOW', (1, cur_t2 - 2), (1, cur_t2 - 2), 0.5, colors.grey))
 
-    handwriting_table = Table(t2_rows, colWidths=[18*mm, 58*mm, 38*mm, 80*mm], rowHeights=t2_heights)
+    handwriting_table = Table(t2_rows, colWidths=[18*mm, 38*mm, 138*mm], rowHeights=t2_heights)
     handwriting_table.setStyle(TableStyle(t2_style_cmds))
     story.append(handwriting_table)
-    story.append(Spacer(1, 1.8 * mm))
+    story.append(Spacer(1, 1.4 * mm))
 
-    nakae_table = Table(
-        [[Paragraph("<b>中永製本</b>", bold_center_style), Paragraph("", normal_style)]],
+    # 表②の下：中永製本は除外し、特記事項(field-45)枠を高さ2cm(20mm)で配置
+    p1_note_table = Table(
+        [
+            [
+                Paragraph("<b>特記事項</b>", bold_center_style),
+                Paragraph(_safe_str(data.get('field-45'), ''), normal_style),
+            ]
+        ],
         colWidths=[18*mm, 176*mm],
-        rowHeights=[20 * mm]
+        rowHeights=[20.0 * mm]
     )
-    nakae_table.setStyle(TableStyle([
+    p1_note_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (0,0), colors.whitesmoke),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 2.5),
+        ('VALIGN', (0,0), (0,0), 'MIDDLE'),
+        ('VALIGN', (1,0), (1,0), 'TOP'),
+        ('PADDING', (0,0), (-1,-1), 2.0),
     ]))
-    story.append(nakae_table)
+    story.append(p1_note_table)
+    story.append(Spacer(1, 1.0 * mm))
 
-    # --- 2頁目: 特記事項 ＋ 工程チェックリスト ＋ 下部注意事項(3cm = 30mm) ---
+    # 枠線外側のフッター余白（右寄せ：作成者 ㈱中永製本）
+    story.append(Paragraph("作成者 ㈱中永製本", footer_right_style))
+
+    # --- 2頁目: 特記事項 ＋ 工程チェックリスト ＋ 下部注意事項(3cm = 30mm) ＋ フッター右寄せ ---
     story.append(PageBreak())
 
     note_data = [
         [Paragraph("特記事項 / 申し送り欄（フリー手書きスペース）", bold_style)],
         [Paragraph(_safe_str(data.get('field-45'), '特記事項なし'), normal_style)]
     ]
-    note_table = Table(note_data, colWidths=[194*mm], rowHeights=[6*mm, 18*mm])
+    note_table = Table(note_data, colWidths=[194*mm], rowHeights=[6*mm, 17*mm])
     note_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (0,0), colors.whitesmoke),
@@ -808,7 +828,7 @@ def generate_progress_card_pdf(data):
         ('PADDING', (0,0), (-1,-1), 2.0),
     ]))
     story.append(note_table)
-    story.append(Spacer(1, 1.5 * mm))
+    story.append(Spacer(1, 1.4 * mm))
 
     chk_rows = []
     chk_style_cmds = [
@@ -818,6 +838,7 @@ def generate_progress_card_pdf(data):
     ]
     row_heights = []
     cur_idx = 0
+    work_date_2char = f"作業日：{nbsp2}年{nbsp2}月{nbsp2}日<br/>担当者印："
 
     for sec_title, items in CHECKLIST_SECTIONS:
         start_idx = cur_idx
@@ -825,7 +846,7 @@ def generate_progress_card_pdf(data):
 
         chk_rows.append([
             Paragraph(f"<b>{sec_title}</b>", bold_style),
-            Paragraph("作業日：  年  月  日<br/>担当者印：", chk_style),
+            Paragraph(work_date_2char, chk_style),
             Paragraph("", chk_style),
         ])
         row_heights.append(8.0 * mm)
@@ -840,7 +861,7 @@ def generate_progress_card_pdf(data):
                 Paragraph(item_text, chk_style),
                 Paragraph("", chk_style),
             ])
-            row_heights.append(6.8 * mm)
+            row_heights.append(6.6 * mm)
             chk_style_cmds.append(('BACKGROUND', (0, cur_idx), (0, cur_idx), colors.whitesmoke))
             chk_style_cmds.append(('ALIGN', (0, cur_idx), (0, cur_idx), 'CENTER'))
             cur_idx += 1
@@ -850,7 +871,7 @@ def generate_progress_card_pdf(data):
     chk_table = Table(chk_rows, colWidths=[24*mm, 118*mm, 52*mm], rowHeights=row_heights)
     chk_table.setStyle(TableStyle(chk_style_cmds))
     story.append(chk_table)
-    story.append(Spacer(1, 1.5 * mm))
+    story.append(Spacer(1, 1.4 * mm))
 
     # 進行カード2頁目 下部 注意事項（高さ 3cm = 30mm）
     p2_note_table = Table(
@@ -864,6 +885,10 @@ def generate_progress_card_pdf(data):
         ('PADDING', (0,0), (-1,-1), 2.5),
     ]))
     story.append(p2_note_table)
+    story.append(Spacer(1, 1.0 * mm))
+
+    # 枠線外側のフッター余白（右寄せ：作成者 ㈱中永製本）
+    story.append(Paragraph("作成者 ㈱中永製本", footer_right_style))
 
     doc.build(story)
     with open(pdf_path, "rb") as f:
@@ -1465,7 +1490,7 @@ if input_order_no:
 
         with col_btn1:
             st.markdown("#### 📋 製本進行カード（全2頁）")
-            st.write("合計台数・台割分割・表①(5mm+7.5mm)・表②パターンA・2頁3cm注意事項対応")
+            st.write("表②上下各9mm・2文字空白・1P特記事項2cm・2P3cm注意事項・フッター右寄せ対応")
             progress_pdf_bytes = generate_progress_card_pdf(record_data)
             progress_xlsx_bytes = generate_progress_card_excel(record_data)
 
