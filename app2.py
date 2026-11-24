@@ -106,9 +106,11 @@ def _format_total_pages(data):
 EXCEL_FONT_NAME = "Meiryo UI"
 
 FONT_TITLE_CARD = Font(name=EXCEL_FONT_NAME, size=13, bold=True, color="111827")
+FONT_TITLE_MENKAKE = Font(name=EXCEL_FONT_NAME, size=14, bold=True, color="111827")
 FONT_BOLD = Font(name=EXCEL_FONT_NAME, size=9, bold=True, color="111827")
 FONT_NORMAL = Font(name=EXCEL_FONT_NAME, size=9, bold=False, color="111827")
 FONT_SMALL_BOLD = Font(name=EXCEL_FONT_NAME, size=8, bold=True, color="111827")
+FONT_SMALL = Font(name=EXCEL_FONT_NAME, size=8, bold=False, color="111827")
 FONT_CHK = Font(name=EXCEL_FONT_NAME, size=8.5, bold=False, color="111827")
 
 FILL_HEADER_GRAY = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
@@ -125,6 +127,7 @@ BORDER_CHK_HEADER = Border(left=THIN_SIDE, right=THIN_SIDE, top=THIN_SIDE, botto
 ALIGN_LEFT = Alignment(horizontal="left", vertical="center", wrap_text=True)
 ALIGN_TOP_LEFT = Alignment(horizontal="left", vertical="top", wrap_text=True)
 ALIGN_CENTER = Alignment(horizontal="center", vertical="center", wrap_text=True)
+ALIGN_RIGHT = Alignment(horizontal="right", vertical="center", wrap_text=True)
 
 
 def _configure_a4_portrait_print(ws, fit_h=2):
@@ -208,7 +211,7 @@ def generate_progress_card_excel(data):
         cell.alignment = ALIGN_CENTER if 10 <= c <= 15 else ALIGN_LEFT
     _apply_box_border(ws, 1, 1, 18, 1)
 
-    # --- 2〜7行目: 基本・仕様情報（5行目に折数ガイド追加） ---
+    # --- 2〜7行目: 基本・仕様情報 ---
     info_spec_rows = [
         (2, "書名", _safe_str(data.get("field-13")), "出版社", _safe_str(data.get("field-8"))),
         (3, "ISBN", _safe_str(data.get("field-93")), "印刷所", _safe_str(data.get("field-14"))),
@@ -262,7 +265,7 @@ def generate_progress_card_excel(data):
             cell.alignment = ALIGN_LEFT
             cell.border = BORDER_GRID
 
-    # --- 8行目: 口絵 / 折図、半製品預かり、予備(M8:R8) ---
+    # --- 8行目: 口絵 / 折図、半製品預かり ---
     ws.row_dimensions[8].height = 20
     ws.merge_cells("A8:C8")
     ws.merge_cells("D8:I8")
@@ -372,7 +375,7 @@ def generate_progress_card_excel(data):
     ws.row_breaks.append(Break(id=20))
 
     # ==========================================
-    # 2頁目 (21行目〜): 特記事項 ＋ 画像準拠の工程チェックリスト
+    # 2頁目 (21行目〜): 特記事項 ＋ 工程チェックリスト
     # ==========================================
     ws.row_dimensions[21].height = 20
     ws.merge_cells("A21:R21")
@@ -399,12 +402,11 @@ def generate_progress_card_excel(data):
     curr_r = 24
     for sec_title, items in CHECKLIST_SECTIONS:
         start_r = curr_r
-        end_r = curr_r + len(items)  # 作業日行 + 各項目行
+        end_r = curr_r + len(items)
 
         ws.merge_cells(start_row=start_r, start_column=1, end_row=end_r, end_column=3)
         ws.cell(row=start_r, column=1, value=sec_title)
 
-        # 作業日・担当者印行
         ws.row_dimensions[start_r].height = 28
         ws.merge_cells(start_row=start_r, start_column=4, end_row=start_r, end_column=18)
         ws.cell(row=start_r, column=4, value="作業日：  年  月  日\n担当者印：")
@@ -416,7 +418,6 @@ def generate_progress_card_excel(data):
             cell.alignment = ALIGN_CENTER if 1 <= c <= 3 else ALIGN_LEFT
             cell.border = BORDER_CHK_HEADER
 
-        # 各チェック項目行（D〜M: 項目, N〜R: 記入/チェック欄）
         for idx, item_text in enumerate(items):
             r = start_r + 1 + idx
             ws.row_dimensions[r].height = 24
@@ -597,7 +598,7 @@ def generate_progress_card_pdf(data):
     ]))
     story.append(nakae_table)
 
-    # --- 2頁目: 特記事項 ＋ 画像準拠の工程チェックリスト ---
+    # --- 2頁目: 特記事項 ＋ 工程チェックリスト ---
     story.append(PageBreak())
 
     note_data = [
@@ -627,7 +628,6 @@ def generate_progress_card_pdf(data):
         start_idx = cur_idx
         end_idx = cur_idx + len(items)
 
-        # 作業日・担当者印行
         chk_rows.append([
             Paragraph(f"<b>{sec_title}</b>", bold_style),
             Paragraph("作業日：  年  月  日<br/>担当者印：", chk_style),
@@ -639,7 +639,6 @@ def generate_progress_card_pdf(data):
         chk_style_cmds.append(('LINEBELOW', (1, cur_idx), (2, cur_idx), 1.2, colors.black))
         cur_idx += 1
 
-        # 各項目行
         for item_text in items:
             chk_rows.append([
                 Paragraph("", bold_style),
@@ -663,7 +662,300 @@ def generate_progress_card_pdf(data):
 
 
 # ==========================================
-# 2. 面掛表・貼り込み表 PDF生成（2ページ構成）
+# 2-A. 面掛表・貼り込み表 Excel生成 (1シート内改ページ・全2頁構成)
+# ==========================================
+def generate_menkake_excel(data):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "面掛表_貼り込み表"
+    _configure_a4_portrait_print(ws, fit_h=2)
+
+    # 16列共通グリッド（下段の4ブロック×4列=16列を基準に設定）
+    # [No, 担当, 折メーター, 折損] × 4
+    block_widths = [3.6, 6.2, 8.8, 4.4]
+    for block_idx in range(4):
+        for offset, w in enumerate(block_widths):
+            col_idx = block_idx * 4 + offset + 1
+            ws.column_dimensions[get_column_letter(col_idx)].width = w
+
+    # ==========================================
+    # 1頁目 (1〜31行目): 面掛表 ＆ 折メーター表
+    # ==========================================
+    # --- 1行目: タイトル ---
+    ws.row_dimensions[1].height = 26
+    ws.merge_cells("A1:P1")
+    ws["A1"] = "面 掛 表"
+    for c in range(1, 17):
+        cell = ws.cell(row=1, column=c)
+        cell.font = FONT_TITLE_MENKAKE
+        cell.fill = FILL_HEADER_GRAY
+        cell.alignment = ALIGN_CENTER
+    _apply_box_border(ws, 1, 1, 16, 1)
+
+    ws.row_dimensions[2].height = 4
+
+    # --- 3行目: 受注番号 / ISBN ---
+    ws.row_dimensions[3].height = 20
+    ws.merge_cells("A3:B3")
+    ws.merge_cells("C3:H3")
+    ws.merge_cells("I3:J3")
+    ws.merge_cells("K3:P3")
+
+    ws["A3"] = "受注番号"
+    ws["C3"] = _safe_str(data.get("field-2"))
+    ws["I3"] = "ISBN"
+    ws["K3"] = _safe_str(data.get("field-93"))
+
+    for c in range(1, 17):
+        cell = ws.cell(row=3, column=c)
+        is_label = c in (1, 2, 9, 10)
+        cell.font = FONT_BOLD if is_label else FONT_NORMAL
+        cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
+        cell.alignment = ALIGN_CENTER if is_label else ALIGN_LEFT
+        cell.border = BORDER_GRID
+
+    # --- 4行目: 書名（手書きスペース確保） ---
+    ws.row_dimensions[4].height = 22
+    ws.merge_cells("A4:B4")
+    ws.merge_cells("C4:P4")
+    ws["A4"] = "書 名"
+    ws["C4"] = ""
+    for c in range(1, 17):
+        cell = ws.cell(row=4, column=c)
+        is_label = c in (1, 2)
+        cell.font = FONT_BOLD if is_label else FONT_NORMAL
+        cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
+        cell.alignment = ALIGN_CENTER if is_label else ALIGN_LEFT
+        cell.border = BORDER_GRID
+
+    ws.row_dimensions[5].height = 4
+
+    # --- 6行目: 面掛テーブル ヘッダー ---
+    # A:C(面掛1), D:E(摘要1), F:H(面掛2), I:J(摘要2), K:P(備考)
+    ws.row_dimensions[6].height = 20
+    ws.merge_cells("A6:C6")
+    ws.merge_cells("D6:E6")
+    ws.merge_cells("F6:H6")
+    ws.merge_cells("I6:J6")
+    ws.merge_cells("K6:P6")
+
+    ws["A6"] = "面掛"
+    ws["D6"] = "摘要"
+    ws["F6"] = "面掛"
+    ws["I6"] = "摘要"
+    ws["K6"] = "備考"
+
+    for c in range(1, 17):
+        cell = ws.cell(row=6, column=c)
+        cell.font = FONT_BOLD
+        cell.fill = FILL_LABEL_BG
+        cell.alignment = ALIGN_CENTER
+        cell.border = BORDER_GRID
+
+    # --- 7〜16行目: 面掛テーブル 10行 ---
+    for i in range(10):
+        r = 7 + i
+        ws.row_dimensions[r].height = 21
+        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
+        ws.merge_cells(start_row=r, start_column=4, end_row=r, end_column=5)
+        ws.merge_cells(start_row=r, start_column=6, end_row=r, end_column=8)
+        ws.merge_cells(start_row=r, start_column=9, end_row=r, end_column=10)
+        ws.merge_cells(start_row=r, start_column=11, end_row=r, end_column=16)
+
+        ws.cell(row=r, column=1, value="×")
+        ws.cell(row=r, column=6, value="×")
+
+        for c in range(1, 17):
+            cell = ws.cell(row=r, column=c)
+            cell.font = FONT_NORMAL
+            cell.fill = FILL_WHITE
+            cell.alignment = ALIGN_CENTER if c in (1, 6) else ALIGN_LEFT
+            cell.border = BORDER_GRID
+
+    # --- 17行目: 注意事項（上段） ---
+    ws.row_dimensions[17].height = 68
+    ws.merge_cells("A17:B17")
+    ws.merge_cells("C17:P17")
+    ws["A17"] = "注意事項"
+    ws["C17"] = ""
+    for c in range(1, 17):
+        cell = ws.cell(row=17, column=c)
+        is_label = c in (1, 2)
+        cell.font = FONT_BOLD if is_label else FONT_NORMAL
+        cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
+        cell.alignment = ALIGN_CENTER if is_label else ALIGN_TOP_LEFT
+        cell.border = BORDER_GRID
+
+    ws.row_dimensions[18].height = 6
+
+    # --- 19行目: 作業日 ---
+    ws.row_dimensions[19].height = 20
+    ws.merge_cells("A19:B19")
+    ws.merge_cells("C19:P19")
+    ws["A19"] = "作業日"
+    ws["C19"] = "     年    月    日"
+    for c in range(1, 17):
+        cell = ws.cell(row=19, column=c)
+        is_label = c in (1, 2)
+        cell.font = FONT_BOLD if is_label else FONT_NORMAL
+        cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
+        cell.alignment = ALIGN_CENTER if is_label else ALIGN_LEFT
+        cell.border = BORDER_GRID
+
+    # --- 20行目: 折メーター表 ヘッダー（4ブロック×4列） ---
+    ws.row_dimensions[20].height = 20
+    sub_headers = ["No", "担当", "折メーター", "折損"] * 4
+    for idx, text in enumerate(sub_headers):
+        c = idx + 1
+        cell = ws.cell(row=20, column=c, value=text)
+        cell.font = FONT_SMALL_BOLD
+        cell.fill = FILL_LABEL_BG
+        cell.alignment = ALIGN_CENTER
+        cell.border = BORDER_GRID
+
+    # --- 21〜30行目: 折メーター表 1〜40番 ---
+    for r_offset in range(10):
+        r = 21 + r_offset
+        ws.row_dimensions[r].height = 17.5
+        for block_idx in range(4):
+            base_col = block_idx * 4 + 1
+            no_val = r_offset + 1 + (block_idx * 10)
+
+            c_no = ws.cell(row=r, column=base_col, value=no_val)
+            c_no.font = FONT_SMALL_BOLD
+            c_no.fill = FILL_LABEL_BG
+            c_no.alignment = ALIGN_CENTER
+            c_no.border = BORDER_GRID
+
+            for sub_c in range(1, 4):
+                cell = ws.cell(row=r, column=base_col + sub_c, value="")
+                cell.font = FONT_SMALL
+                cell.fill = FILL_WHITE
+                cell.alignment = ALIGN_CENTER
+                cell.border = BORDER_GRID
+
+    # --- 31行目: 注意事項（下段） ---
+    ws.row_dimensions[31].height = 60
+    ws.merge_cells("A31:B31")
+    ws.merge_cells("C31:P31")
+    ws["A31"] = "注意事項"
+    ws["C31"] = ""
+    for c in range(1, 17):
+        cell = ws.cell(row=31, column=c)
+        is_label = c in (1, 2)
+        cell.font = FONT_BOLD if is_label else FONT_NORMAL
+        cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
+        cell.alignment = ALIGN_CENTER if is_label else ALIGN_TOP_LEFT
+        cell.border = BORDER_GRID
+
+    # 1シート内改ページ（31行目の後で2頁目へ）
+    ws.row_breaks.append(Break(id=31))
+
+    # ==========================================
+    # 2頁目 (32〜59行目): 貼り込み表
+    # ==========================================
+    # --- 32行目: タイトル ---
+    ws.row_dimensions[32].height = 26
+    ws.merge_cells("A32:P32")
+    ws["A32"] = "貼 り 込 み 表"
+    for c in range(1, 17):
+        cell = ws.cell(row=32, column=c)
+        cell.font = FONT_TITLE_MENKAKE
+        cell.fill = FILL_HEADER_GRAY
+        cell.alignment = ALIGN_CENTER
+    _apply_box_border(ws, 1, 32, 16, 32)
+
+    ws.row_dimensions[33].height = 4
+
+    # --- 34行目: 書名・部数・作業日 ---
+    # A:B(書名lbl), C:G(書名空欄), H(部数lbl), I:J(部数), K:L(作業日lbl), M:P(作業日)
+    ws.row_dimensions[34].height = 22
+    ws.merge_cells("A34:B34")
+    ws.merge_cells("C34:G34")
+    ws.merge_cells("I34:J34")
+    ws.merge_cells("K34:L34")
+    ws.merge_cells("M34:P34")
+
+    ws["A34"] = "書名"
+    ws["C34"] = ""
+    ws["H34"] = "部数"
+    ws["I34"] = f"{_safe_str(data.get('field-4', '500'))} 部"
+    ws["K34"] = "作業日"
+    ws["M34"] = "  年  月  日"
+
+    for c in range(1, 17):
+        cell = ws.cell(row=34, column=c)
+        is_label = c in (1, 2, 8, 11, 12)
+        cell.font = FONT_BOLD if is_label else FONT_NORMAL
+        cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
+        if is_label:
+            cell.alignment = ALIGN_CENTER
+        elif c in (9, 10):
+            cell.alignment = ALIGN_RIGHT
+        else:
+            cell.alignment = ALIGN_LEFT
+        cell.border = BORDER_GRID
+
+    ws.row_dimensions[35].height = 4
+
+    # --- 36行目: 貼り込み表 ヘッダー ---
+    # A:E(貼り込み箇所), F:G(本数), H:I(半端), J:K(ヤレ枚数), L:P(備考)
+    ws.row_dimensions[36].height = 22
+    ws.merge_cells("A36:E36")
+    ws.merge_cells("F36:G36")
+    ws.merge_cells("H36:I36")
+    ws.merge_cells("J36:K36")
+    ws.merge_cells("L36:P36")
+
+    ws["A36"] = "貼り込み箇所"
+    ws["F36"] = "本数"
+    ws["H36"] = "半端"
+    ws["J36"] = "ヤレ枚数"
+    ws["L36"] = "備考"
+
+    for c in range(1, 17):
+        cell = ws.cell(row=36, column=c)
+        cell.font = FONT_BOLD
+        cell.fill = FILL_LABEL_BG
+        cell.alignment = ALIGN_CENTER
+        cell.border = BORDER_GRID
+
+    # --- 37〜60行目: 貼り込み表 24行 ---
+    for i in range(24):
+        r = 37 + i
+        ws.row_dimensions[r].height = 24
+        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=5)
+        ws.merge_cells(start_row=r, start_column=6, end_row=r, end_column=7)
+        ws.merge_cells(start_row=r, start_column=8, end_row=r, end_column=9)
+        ws.merge_cells(start_row=r, start_column=10, end_row=r, end_column=11)
+        ws.merge_cells(start_row=r, start_column=12, end_row=r, end_column=16)
+
+        ws.cell(row=r, column=1, value="    折 〜     折")
+        ws.cell(row=r, column=6, value="本")
+        ws.cell(row=r, column=8, value="本")
+        ws.cell(row=r, column=10, value="枚")
+        ws.cell(row=r, column=12, value="")
+
+        for c in range(1, 17):
+            cell = ws.cell(row=r, column=c)
+            cell.font = FONT_NORMAL
+            cell.fill = FILL_WHITE
+            if 1 <= c <= 5:
+                cell.alignment = ALIGN_CENTER
+            elif 6 <= c <= 11:
+                cell.alignment = ALIGN_RIGHT
+            else:
+                cell.alignment = ALIGN_LEFT
+            cell.border = BORDER_GRID
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf.getvalue()
+
+
+# ==========================================
+# 2-B. 面掛表・貼り込み表 PDF生成（2ページ構成）
 # ==========================================
 def generate_menkake_pdf(data):
     pdf_path = "temp_menkake.pdf"
@@ -929,9 +1221,10 @@ if input_order_no:
             )
 
         with col_btn2:
-            st.markdown("#### 📋 面掛表・貼り込み表")
+            st.markdown("#### 📋 面掛表・貼り込み表（全2頁）")
             st.write("面掛表・折メーター表 ＆ 貼り込み表の2頁構成")
             menkake_pdf_bytes = generate_menkake_pdf(record_data)
+            menkake_xlsx_bytes = generate_menkake_excel(record_data)
 
             st.download_button(
                 label="📥 面掛表・貼り込み表PDFをダウンロード",
@@ -940,6 +1233,14 @@ if input_order_no:
                 mime="application/pdf",
                 type="primary",
                 key="btn_menkake_pdf",
+                use_container_width=True,
+            )
+            st.download_button(
+                label="📊 面掛表・貼り込み表Excelをダウンロード",
+                data=menkake_xlsx_bytes,
+                file_name=f"面掛表_貼り込み表_{input_order_no}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="btn_menkake_xlsx",
                 use_container_width=True,
             )
     else:
