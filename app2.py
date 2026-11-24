@@ -679,7 +679,6 @@ def generate_menkake_excel(data):
     wb = Workbook()
     ws = wb.active
     ws.title = "面掛表_貼り込み表"
-    # A4縦1頁・2頁に余裕を持って収めるため余白を最適化
     _configure_a4_portrait_print(ws, fit_h=2, margin_lr=0.2, margin_tb=0.18)
 
     # 16列共通グリッド（下段4ブロック×4列=16列を基準）
@@ -691,8 +690,7 @@ def generate_menkake_excel(data):
             ws.column_dimensions[get_column_letter(col_idx)].width = w
 
     # ==========================================
-    # 1頁目 (1〜27行目): 面掛表 ＆ 表組①(0.9cm) ＆ 注意事項(2cm) ＆ 作業日 ＆ 表組②(1.2cm) ＆ 注意事項(2cm)
-    # 合計高さ目安: 約274mm（A4縦 297mm - 余白約9mm = 約288mm以内に収める）
+    # 1頁目: 面掛表 ＆ 表組①(0.9cm) ＆ 注意事項(2cm) ＆ 作業日 ＆ 表組②(1.2cm) ＆ 注意事項(2cm)
     # ==========================================
     # --- 1行目: タイトル ---
     ws.row_dimensions[1].height = 20
@@ -767,7 +765,6 @@ def generate_menkake_excel(data):
         cell.border = BORDER_GRID
 
     # --- 5行目: 表組① ヘッダー（面掛｜備考｜面掛｜備考） ---
-    # A:D(面掛), E:H(備考), I:L(面掛), M:P(備考)
     ws.row_dimensions[5].height = 16.5
     ws.merge_cells("A5:D5")
     ws.merge_cells("E5:H5")
@@ -795,8 +792,11 @@ def generate_menkake_excel(data):
         ws.merge_cells(start_row=r, start_column=9, end_row=r, end_column=12)
         ws.merge_cells(start_row=r, start_column=13, end_row=r, end_column=16)
 
+        for start_c in (1, 5, 9, 13):
+            ws.cell(row=r, column=start_c, value="")
+
         for c in range(1, 17):
-            cell = ws.cell(row=r, column=c, value="")
+            cell = ws.cell(row=r, column=c)
             cell.font = FONT_SMALL
             cell.fill = FILL_WHITE
             cell.alignment = ALIGN_LEFT
@@ -880,7 +880,7 @@ def generate_menkake_excel(data):
     ws.row_breaks.append(Break(id=29))
 
     # ==========================================
-    # 2頁目 (30〜56行目): 貼り込み表
+    # 2頁目: 貼り込み表
     # ==========================================
     ws.row_dimensions[30].height = 24
     ws.merge_cells("A30:P30")
@@ -1005,7 +1005,6 @@ def generate_menkake_pdf(data):
     story.append(Paragraph("<b>面掛表</b>", title_style))
     story.append(Spacer(1, 0.8 * mm))
 
-    # 受注番号 / 出版社名
     top_info_data = [
         [
             Paragraph(f"<b>受注番号:</b> {_safe_str(data.get('field-2'))}", normal_style),
@@ -1022,7 +1021,6 @@ def generate_menkake_pdf(data):
     story.append(top_info_table)
     story.append(Spacer(1, 0.8 * mm))
 
-    # 書名（field-13 自動印字）
     book_title_data = [[Paragraph(f"<b>書名:</b> {_safe_str(data.get('field-13'))}", bold_style)]]
     book_title_table = Table(book_title_data, colWidths=[194 * mm], rowHeights=[5 * mm])
     book_title_table.setStyle(TableStyle([
@@ -1033,7 +1031,6 @@ def generate_menkake_pdf(data):
     story.append(book_title_table)
     story.append(Spacer(1, 0.8 * mm))
 
-    # 総頁数 / 折数（32P,16P,8P,4P,2P）/ 合計台数
     spec_data = [
         [
             Paragraph(f"<b>総頁数:</b> {_safe_str(data.get('field-82'))}", normal_style),
@@ -1051,7 +1048,6 @@ def generate_menkake_pdf(data):
     story.append(spec_table)
     story.append(Spacer(1, 0.8 * mm))
 
-    # 表組①（手書き用・枠のみ・面掛｜備考｜面掛｜備考・4列×10段・行高さ 0.9cm = 9mm）
     t1_headers = [
         Paragraph("<b>面掛</b>", bold_style),
         Paragraph("<b>備考</b>", bold_style),
@@ -1082,7 +1078,6 @@ def generate_menkake_pdf(data):
     story.append(t1_table)
     story.append(Spacer(1, 0.8 * mm))
 
-    # 注意事項（高さ 2.0cm = 20mm）
     note_data1 = [[Paragraph("<b>注意事項:</b>", normal_style)]]
     note_table1 = Table(note_data1, colWidths=[194 * mm], rowHeights=[20.0 * mm])
     note_table1.setStyle(TableStyle([
@@ -1093,7 +1088,6 @@ def generate_menkake_pdf(data):
     story.append(note_table1)
     story.append(Spacer(1, 1.0 * mm))
 
-    # 作業日 枠（手書き記入用・年月日空欄）
     space_ym = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
     work_date_str = f"<b>作業日:</b>{space_ym}年{space_ym}月{space_ym}日"
     work_date_data = [[Paragraph(work_date_str, normal_style)]]
@@ -1106,7 +1100,6 @@ def generate_menkake_pdf(data):
     story.append(work_date_table)
     story.append(Spacer(1, 0.8 * mm))
 
-    # 表組②（手書き用空欄・現況のまま・高さ 1.2cm = 12mm）
     sub_headers = [
         Paragraph("<b>No</b>", bold_center_65pt), Paragraph("<b>担当</b>", center_65pt), Paragraph("<b>折メーター</b>", center_65pt), Paragraph("<b>折損</b>", bold_center_65pt),
         Paragraph("<b>No</b>", bold_center_65pt), Paragraph("<b>担当</b>", center_65pt), Paragraph("<b>折メーター</b>", center_65pt), Paragraph("<b>折損</b>", bold_center_65pt),
@@ -1143,7 +1136,6 @@ def generate_menkake_pdf(data):
     story.append(sub_table)
     story.append(Spacer(1, 0.8 * mm))
 
-    # 注意事項（高さ 2.0cm = 20mm）
     note_data2 = [[Paragraph("<b>注意事項:</b>", normal_style)]]
     note_table2 = Table(note_data2, colWidths=[194 * mm], rowHeights=[20.0 * mm])
     note_table2.setStyle(TableStyle([
