@@ -267,45 +267,45 @@ def generate_progress_card_excel(data):
             cell.alignment = ALIGN_LEFT
             cell.border = BORDER_GRID
 
-    # --- 5行目: 台割（総頁数 + 32P/16P/8P/4P/2P セル分割等間隔） + 印刷/製本数 ---
+    # --- 5行目: 台割（総頁数 + 32P/16P/8P/4P/2P セル分割等間隔） + 合計台数 ---
     ws.row_dimensions[5].height = 19.5
-    ws.merge_cells("A5:C5")   # 総頁数ラベル
-    ws.merge_cells("D5:E5")   # 総頁数値
-    ws.merge_cells("F5:G5")   # 32P
-    ws.merge_cells("H5:I5")   # 16P
-    ws.merge_cells("J5:K5")   # 8P
-    ws.merge_cells("L5:M5")   # 4P
-    ws.merge_cells("N5:O5")   # 2P
-    # P5: 印刷/製本数ラベル
-    ws.merge_cells("Q5:R5")   # 印刷/製本数値
+    ws.merge_cells("A5:B5")   # 総頁数ラベル
+    ws.merge_cells("C5:D5")   # 総頁数値
+    ws.merge_cells("E5:F5")   # 32P
+    ws.merge_cells("G5:H5")   # 16P
+    ws.merge_cells("I5:J5")   # 8P
+    ws.merge_cells("K5:L5")   # 4P
+    ws.merge_cells("M5:N5")   # 2P
+    ws.merge_cells("O5:P5")   # 合計台数ラベル
+    ws.merge_cells("Q5:R5")   # 合計台数値
 
     fold_items = _get_fold_items(data)
-    ws["A5"] = "台割・総頁"
-    ws["D5"] = _safe_str(data.get("field-82"))
-    ws["F5"] = fold_items[0]
-    ws["H5"] = fold_items[1]
-    ws["J5"] = fold_items[2]
-    ws["L5"] = fold_items[3]
-    ws["N5"] = fold_items[4]
-    ws["P5"] = "印/製部数"
-    ws["Q5"] = f"印:{_safe_str(data.get('field-3'))} / 製:{_safe_str(data.get('field-4'))}"
+    ws["A5"] = "総頁数"
+    ws["C5"] = _safe_str(data.get("field-82"))
+    ws["E5"] = fold_items[0]
+    ws["G5"] = fold_items[1]
+    ws["I5"] = fold_items[2]
+    ws["K5"] = fold_items[3]
+    ws["M5"] = fold_items[4]
+    ws["O5"] = "合計台数"
+    ws["Q5"] = _safe_str(data.get("field-35"))
 
     for c in range(1, 19):
         cell = ws.cell(row=5, column=c)
-        is_label = (1 <= c <= 3) or (c == 16)
+        is_label = (1 <= c <= 2) or (15 <= c <= 16)
         cell.font = FONT_SMALL_BOLD if is_label else FONT_SMALL
         cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
-        cell.alignment = ALIGN_CENTER if (1 <= c <= 16) else ALIGN_LEFT
+        cell.alignment = ALIGN_CENTER
         cell.border = BORDER_GRID
 
-    # --- 6〜7行目: 仕上仕様・寸法・付物 ---
+    # --- 6〜7行目: 印刷/製本数・仕上仕様・寸法・付物 ---
     spec_rows = [
         (
             6,
-            "仕上仕様",
-            f"{_safe_str(data.get('field-41'))} / {_safe_str(data.get('field-42'))}",
-            "背固仕様",
-            _safe_str(data.get("field-43")),
+            "印刷/製本数",
+            f"印:{_safe_str(data.get('field-3'))}部 / 製:{_safe_str(data.get('field-4'))}部",
+            "合計台数",
+            _safe_str(data.get("field-35")),
         ),
         (
             7,
@@ -335,16 +335,16 @@ def generate_progress_card_excel(data):
             cell.alignment = ALIGN_LEFT
             cell.border = BORDER_GRID
 
-    # --- 8〜9行目: 口絵/折図・半製品預かり・袋払い ---
+    # --- 8〜9行目: 口絵/折図・半製品預かり・袋払い・仕上/背固仕様 ---
     ws.row_dimensions[8].height = 18.5
     ws.merge_cells("A8:C8")
     ws.merge_cells("D8:I8")
     ws.merge_cells("J8:L8")
     ws.merge_cells("M8:R8")
-    ws["A8"] = "口絵 / 折図"
-    ws["D8"] = f"口絵:{_safe_str(data.get('field-65'))}(丁:{_safe_str(data.get('field-66'))}) / 折図:{_safe_str(data.get('field-69'))}"
-    ws["J8"] = "半製品預かり"
-    ws["M8"] = _safe_str(data.get("field-81"))
+    ws["A8"] = "仕上/背固"
+    ws["D8"] = f"{_safe_str(data.get('field-41'))} / {_safe_str(data.get('field-42'))} / {_safe_str(data.get('field-43'))}"
+    ws["J8"] = "口絵 / 折図"
+    ws["M8"] = f"口絵:{_safe_str(data.get('field-65'))}(丁:{_safe_str(data.get('field-66'))}) / 折図:{_safe_str(data.get('field-69'))}"
     for c in range(1, 19):
         cell = ws.cell(row=8, column=c)
         is_label = (1 <= c <= 3) or (10 <= c <= 12)
@@ -360,8 +360,8 @@ def generate_progress_card_excel(data):
     ws.merge_cells("M9:R9")
     ws["A9"] = "袋払い"
     ws["D9"] = f"袋払い: {_safe_str(data.get('field-71'))}"
-    ws["J9"] = ""
-    ws["M9"] = ""
+    ws["J9"] = "半製品預かり"
+    ws["M9"] = _safe_str(data.get("field-81"))
     for c in range(1, 19):
         cell = ws.cell(row=9, column=c)
         is_label = (1 <= c <= 3) or (10 <= c <= 12)
@@ -374,7 +374,6 @@ def generate_progress_card_excel(data):
     ws.row_dimensions[10].height = 6
 
     # --- 11〜16行目: 表①（1〜54 数字マス目：上5mm=14.2pt 番号 / 下7.5mm=21.3pt 手書き空欄） ---
-    # 3ブロック分（1-18, 19-36, 37-54）を各「番号行＋手書き行」の2行×3セット＝6行で表現
     num_ranges = [range(1, 19), range(19, 37), range(37, 55)]
     curr_t1_r = 11
     for rng in num_ranges:
@@ -389,22 +388,20 @@ def generate_progress_card_excel(data):
             c_top.font = FONT_SMALL_BOLD
             c_top.fill = FILL_LABEL_BG
             c_top.alignment = ALIGN_CENTER
-            c_top.border = Border(left=THIN_SIDE, right=THIN_SIDE, top=THIN_SIDE, bottom=THIN_SIDE)
+            c_top.border = BORDER_GRID
 
             c_bot = ws.cell(row=r_memo, column=c, value="")
             c_bot.font = FONT_SMALL
             c_bot.fill = FILL_WHITE
             c_bot.alignment = ALIGN_CENTER
-            c_bot.border = Border(left=THIN_SIDE, right=THIN_SIDE, top=THIN_SIDE, bottom=THIN_SIDE)
+            c_bot.border = BORDER_GRID
 
         curr_t1_r += 2
 
     # --- 17行目: 余白 ---
     ws.row_dimensions[17].height = 6
 
-    # --- 18〜27行目: 表②（丁合/無線/化粧/仕上/見本：高さそのまま1行36pt・手前1列追加＋上下2段[上:年月日, 下:○○部右寄せ]） ---
-    # 各工程を上下2行（各18pt＝合計36pt）で構成し、工程ラベル（A〜B）と追加列（C〜D）を縦結合、
-    # 年月日・部数欄（E〜R）は上段＝年月日手書き用、下段＝○○部 右寄せとする
+    # --- 18〜27行目: 表②（パターンA：工程名(A-B)｜申送り手書き欄(C-G)｜上段:日付・下段:○○部右寄せ(H-K)｜右側空欄上下結合(L-R)） ---
     memo_labels = ["丁合", "無線", "化粧", "仕上", "見本"]
     copies_str = _format_binding_copies(data)
     curr_t2_r = 18
@@ -414,18 +411,20 @@ def generate_progress_card_excel(data):
         ws.row_dimensions[r_top].height = 18.0
         ws.row_dimensions[r_bot].height = 18.0
 
-        # 手前1列目（A〜B: 工程名）と2列目（C〜D: 追加列）を上下結合
+        # 工程名(A-B)、申送り手書き欄(C-G)、右側空欄(L-R)を上下結合
         ws.merge_cells(start_row=r_top, start_column=1, end_row=r_bot, end_column=2)
-        ws.merge_cells(start_row=r_top, start_column=3, end_row=r_bot, end_column=4)
+        ws.merge_cells(start_row=r_top, start_column=3, end_row=r_bot, end_column=7)
+        ws.merge_cells(start_row=r_top, start_column=12, end_row=r_bot, end_column=18)
 
-        # 上段・下段の記入エリア（E〜R）
-        ws.merge_cells(start_row=r_top, start_column=5, end_row=r_top, end_column=18)
-        ws.merge_cells(start_row=r_bot, start_column=5, end_row=r_bot, end_column=18)
+        # 日付・○○部欄(H-K)は上下2段
+        ws.merge_cells(start_row=r_top, start_column=8, end_row=r_top, end_column=11)
+        ws.merge_cells(start_row=r_bot, start_column=8, end_row=r_bot, end_column=11)
 
         ws.cell(row=r_top, column=1, value=lbl)
         ws.cell(row=r_top, column=3, value="")
-        ws.cell(row=r_top, column=5, value="   年   月   日")
-        ws.cell(row=r_bot, column=5, value=copies_str)
+        ws.cell(row=r_top, column=8, value="  年  月  日")
+        ws.cell(row=r_bot, column=8, value=copies_str)
+        ws.cell(row=r_top, column=12, value="")
 
         for r_cur in (r_top, r_bot):
             for c in range(1, 19):
@@ -434,23 +433,23 @@ def generate_progress_card_excel(data):
                     cell.font = FONT_BOLD
                     cell.fill = FILL_LABEL_BG
                     cell.alignment = ALIGN_CENTER
-                elif 3 <= c <= 4:
+                elif 3 <= c <= 7:
                     cell.font = FONT_NORMAL
                     cell.fill = FILL_WHITE
-                    cell.alignment = ALIGN_CENTER
-                elif r_cur == r_top:
-                    cell.font = FONT_SMALL
+                    cell.alignment = ALIGN_TOP_LEFT
+                elif 8 <= c <= 11:
+                    if r_cur == r_top:
+                        cell.font = FONT_SMALL
+                        cell.alignment = ALIGN_LEFT
+                    else:
+                        cell.font = FONT_BOLD
+                        cell.alignment = ALIGN_RIGHT
                     cell.fill = FILL_WHITE
-                    cell.alignment = ALIGN_LEFT
                 else:
-                    cell.font = FONT_BOLD
+                    cell.font = FONT_NORMAL
                     cell.fill = FILL_WHITE
-                    cell.alignment = ALIGN_RIGHT
-
-                # 上下2段の境界線と外枠を整える
-                top_b = THIN_SIDE if r_cur == r_top else THIN_SIDE
-                bot_b = THIN_SIDE if r_cur == r_bot else THIN_SIDE
-                cell.border = Border(left=THIN_SIDE, right=THIN_SIDE, top=top_b, bottom=bot_b)
+                    cell.alignment = ALIGN_TOP_LEFT
+                cell.border = BORDER_GRID
 
         curr_t2_r += 2
 
@@ -639,23 +638,23 @@ def generate_progress_card_pdf(data):
     story.append(info_top_table)
     story.append(Spacer(1, 1.0 * mm))
 
-    # 台割行（総頁数 + 32P/16P/8P/4P/2P セル分割等間隔 + 印刷/製本数）
+    # 台割行（総頁数 + 32P/16P/8P/4P/2P セル分割等間隔 + 合計台数）
     fold_items = _get_fold_items(data)
     fold_row_data = [
         [
-            Paragraph("台割・総頁", bold_center_style),
+            Paragraph("総頁数", bold_center_style),
             Paragraph(_safe_str(data.get('field-82')), bold_center_style),
             Paragraph(fold_items[0], bold_center_style),
             Paragraph(fold_items[1], bold_center_style),
             Paragraph(fold_items[2], bold_center_style),
             Paragraph(fold_items[3], bold_center_style),
             Paragraph(fold_items[4], bold_center_style),
-            Paragraph(f"印:{_safe_str(data.get('field-3'))} / 製:{_safe_str(data.get('field-4'))}", normal_style),
+            Paragraph(f"合計台数: {_safe_str(data.get('field-35'))}", bold_center_style),
         ]
     ]
     fold_row_table = Table(
         fold_row_data,
-        colWidths=[22*mm, 14*mm, 22*mm, 22*mm, 22*mm, 22*mm, 22*mm, 48*mm],
+        colWidths=[18*mm, 14*mm, 24*mm, 24*mm, 24*mm, 24*mm, 24*mm, 42*mm],
         rowHeights=[6.5 * mm]
     )
     fold_row_table.setStyle(TableStyle([
@@ -669,10 +668,10 @@ def generate_progress_card_pdf(data):
 
     info_bot_data = [
         [
-            Paragraph("仕上仕様", bold_style),
-            Paragraph(f"{_safe_str(data.get('field-41'))} / {_safe_str(data.get('field-42'))}", normal_style),
-            Paragraph("背固仕様", bold_style),
-            Paragraph(_safe_str(data.get('field-43')), normal_style),
+            Paragraph("印刷/製本数", bold_style),
+            Paragraph(f"印:{_safe_str(data.get('field-3'))}部 / 製:{_safe_str(data.get('field-4'))}部", normal_style),
+            Paragraph("合計台数", bold_style),
+            Paragraph(_safe_str(data.get('field-35')), bold_style),
         ],
         [
             Paragraph("仕上寸法", bold_style),
@@ -681,16 +680,16 @@ def generate_progress_card_pdf(data):
             Paragraph(f"付:{_safe_str(data.get('field-49'))} / 見:{_safe_str(data.get('field-48'))}", normal_style),
         ],
         [
+            Paragraph("仕上/背固", bold_style),
+            Paragraph(f"{_safe_str(data.get('field-41'))} / {_safe_str(data.get('field-42'))} / {_safe_str(data.get('field-43'))}", normal_style),
             Paragraph("口絵 / 折図", bold_style),
             Paragraph(f"口絵:{_safe_str(data.get('field-65'))}(丁:{_safe_str(data.get('field-66'))}) / 折図:{_safe_str(data.get('field-69'))}", normal_style),
-            Paragraph("半製品預かり", bold_style),
-            Paragraph(_safe_str(data.get('field-81')), normal_style),
         ],
         [
             Paragraph("袋払い", bold_style),
             Paragraph(f"袋払い: {_safe_str(data.get('field-71'))}", normal_style),
-            Paragraph("", bold_style),
-            Paragraph("", normal_style),
+            Paragraph("半製品預かり", bold_style),
+            Paragraph(_safe_str(data.get('field-81')), normal_style),
         ],
     ]
     info_bot_table = Table(info_bot_data, colWidths=[22*mm, 72*mm, 22*mm, 78*mm], rowHeights=[6.2*mm] * 4)
@@ -731,7 +730,7 @@ def generate_progress_card_pdf(data):
     story.append(num_grid_table)
     story.append(Spacer(1, 1.8 * mm))
 
-    # --- 表②（丁合/無線/化粧/仕上/見本：高さそのまま15mm・手前1列追加＋上下2段[上:年月日, 下:○○部右寄せ]） ---
+    # --- 表②（パターンA：工程名 18mm ｜ 申送り手書き欄 58mm ｜ 上段:日付・下段:○○部右寄せ 38mm ｜ 右側空欄 80mm） ---
     memo_labels = ["丁合", "無線", "化粧", "仕上", "見本"]
     copies_str = _format_binding_copies(data)
     t2_rows = []
@@ -742,24 +741,27 @@ def generate_progress_card_pdf(data):
     ]
     cur_t2 = 0
     for lbl in memo_labels:
-        # 上段（7.5mm）：工程名(span) | 追加列(span) | 年月日手書き用
+        # 上段（7.5mm）：工程名(span) | 申送り手書き欄(span) | 日付手書き部 | 右側空欄(span)
         t2_rows.append([
             Paragraph(f"<b>{lbl}</b>", bold_center_style),
             Paragraph("", normal_style),
             Paragraph("年   月   日", normal_style),
+            Paragraph("", normal_style),
         ])
         t2_heights.append(7.5 * mm)
         t2_style_cmds.append(('BACKGROUND', (0, cur_t2), (0, cur_t2), colors.whitesmoke))
         t2_style_cmds.append(('VALIGN', (0, cur_t2), (1, cur_t2), 'MIDDLE'))
         t2_style_cmds.append(('VALIGN', (2, cur_t2), (2, cur_t2), 'MIDDLE'))
         t2_style_cmds.append(('ALIGN', (2, cur_t2), (2, cur_t2), 'LEFT'))
+        t2_style_cmds.append(('VALIGN', (3, cur_t2), (3, cur_t2), 'TOP'))
         cur_t2 += 1
 
-        # 下段（7.5mm）：工程名(span) | 追加列(span) | ○○部 右寄せ
+        # 下段（7.5mm）：工程名(span) | 申送り手書き欄(span) | ○○部 右寄せ | 右側空欄(span)
         t2_rows.append([
             Paragraph("", bold_center_style),
             Paragraph("", normal_style),
             Paragraph(copies_str, right_bold_style),
+            Paragraph("", normal_style),
         ])
         t2_heights.append(7.5 * mm)
         t2_style_cmds.append(('BACKGROUND', (0, cur_t2), (0, cur_t2), colors.whitesmoke))
@@ -767,12 +769,13 @@ def generate_progress_card_pdf(data):
         t2_style_cmds.append(('ALIGN', (2, cur_t2), (2, cur_t2), 'RIGHT'))
         cur_t2 += 1
 
-        # 工程名・追加列を上下結合、上段と下段の間に横線
+        # 工程名・申送り手書き欄・右側空欄を上下結合、日付/部数欄は上下分割線を引く
         t2_style_cmds.append(('SPAN', (0, cur_t2 - 2), (0, cur_t2 - 1)))
         t2_style_cmds.append(('SPAN', (1, cur_t2 - 2), (1, cur_t2 - 1)))
+        t2_style_cmds.append(('SPAN', (3, cur_t2 - 2), (3, cur_t2 - 1)))
         t2_style_cmds.append(('LINEBELOW', (2, cur_t2 - 2), (2, cur_t2 - 2), 0.5, colors.grey))
 
-    handwriting_table = Table(t2_rows, colWidths=[18*mm, 18*mm, 158*mm], rowHeights=t2_heights)
+    handwriting_table = Table(t2_rows, colWidths=[18*mm, 58*mm, 38*mm, 80*mm], rowHeights=t2_heights)
     handwriting_table.setStyle(TableStyle(t2_style_cmds))
     story.append(handwriting_table)
     story.append(Spacer(1, 1.8 * mm))
@@ -1462,7 +1465,7 @@ if input_order_no:
 
         with col_btn1:
             st.markdown("#### 📋 製本進行カード（全2頁）")
-            st.write("台割分割・表①(5mm+7.5mm)・表②上下分割・2頁3cm注意事項対応")
+            st.write("合計台数・台割分割・表①(5mm+7.5mm)・表②パターンA・2頁3cm注意事項対応")
             progress_pdf_bytes = generate_progress_card_pdf(record_data)
             progress_xlsx_bytes = generate_progress_card_excel(record_data)
 
