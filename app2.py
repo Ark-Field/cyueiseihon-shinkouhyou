@@ -398,7 +398,7 @@ def generate_progress_card_excel(data):
 
     # --- 18〜27行目: 表②（1行25.0mm：上段12.5mm(35.4pt) 年月日4文字空白 ＋ 下段12.5mm(35.4pt) 「部」右寄せ手入力） ---
     memo_labels = ["丁合", "無線", "化粧", "仕上", "見本"]
-    excel_date_4char = "    年    月    日"
+    excel_date_4char = " 　 　　  年  　　　　  月  　　　  日"
     curr_t2_r = 18
     for lbl in memo_labels:
         r_top = curr_t2_r
@@ -741,7 +741,7 @@ def generate_progress_card_pdf(data):
 
     # --- 表②（1行25.0mm：上段12.5mm 年月日4文字空白 ＋ 下段12.5mm 「部」だけ右寄せ手入力） ---
     memo_labels = ["丁合", "無線", "化粧", "仕上", "見本"]
-    date_4char_blank = f"{nbsp4}年{nbsp4}月{nbsp4}日"
+    date_4char_blank = f"{nbsp4}　　年{nbsp4}　　月{nbsp4}　　日"
     t2_rows = []
     t2_heights = []
     t2_style_cmds = [
@@ -836,7 +836,7 @@ def generate_progress_card_pdf(data):
     ]
     row_heights = []
     cur_idx = 0
-    work_date_4char = f"作業日：{nbsp4}年{nbsp4}月{nbsp4}日<br/>担当者印："
+    work_date_4char = f"作業日：{nbsp4}　　年{nbsp4}　　月{nbsp4}　　日<br/>担当者印："
 
     for sec_title, items in CHECKLIST_SECTIONS:
         start_idx = cur_idx
@@ -1039,7 +1039,7 @@ def generate_menkake_excel(data):
     ws.merge_cells("A17:B17")
     ws.merge_cells("C17:P17")
     ws["A17"] = "作業日"
-    ws["C17"] = "     年    月    日"
+    ws["C17"] = "     　　年   　　 月　　    日"
     for c in range(1, 17):
         cell = ws.cell(row=17, column=c)
         is_label = c in (1, 2)
@@ -1123,7 +1123,7 @@ def generate_menkake_excel(data):
     ws["H32"] = "部数"
     ws["I32"] = f"{_safe_str(data.get('field-4', '500'))} 部"
     ws["K32"] = "作業日"
-    ws["M32"] = "   年   月   日"
+    ws["M32"] = "  　　 年 　　  月 　　  日"
 
     for c in range(1, 17):
         cell = ws.cell(row=32, column=c)
@@ -1394,7 +1394,7 @@ def generate_menkake_pdf(data):
     story.append(Paragraph("貼 り 込 み 表", title_style))
     story.append(Spacer(1, 1.2 * mm))
 
-    work_date_pasting = f"<b>作業日:</b>{space_ym}年{space_ym}月{space_ym}日"
+    work_date_pasting = f"<b>作業日:</b>{space_ym}　　年{space_ym}　　月{space_ym}　　日"
 
     pasting_info_data = [
         [
