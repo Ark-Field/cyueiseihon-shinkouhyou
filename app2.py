@@ -223,9 +223,15 @@ def generate_progress_card_excel(data):
     ws.title = "製本進行カード"
     _configure_a4_portrait_print(ws, fit_h=2, margin_lr=0.22, margin_tb=0.16)
 
-    ws.column_dimensions["A"].width = 4.25
-    for idx in range(2, 19):
-        ws.column_dimensions[get_column_letter(idx)].width = 13.0
+    # 2〜4行目: 1列目(A-B)=22mm相当, 2列目(C-K)=100mm相当, 3列目(L-M)=22mm相当, 4列目(N-R)=50mm相当
+    col_widths_18 = [
+        4.25, 21.3,                          # 1列目相当 (A-B)
+        12.9, 12.9, 12.9, 12.9, 12.9, 12.9, 12.9, 12.9, 12.9,  # 2列目相当 (C-K: 100mm比率)
+        12.75, 12.75,                        # 3列目相当 (L-M)
+        11.6, 11.6, 11.6, 11.6, 11.6,        # 4列目相当 (N-R: 50mm比率)
+    ]
+    for idx, w in enumerate(col_widths_18, start=1):
+        ws.column_dimensions[get_column_letter(idx)].width = w
 
     # --- 1頁目: ヘッダー (1行目・14pt太字) ---
     ws.row_dimensions[1].height = 23
@@ -248,36 +254,42 @@ def generate_progress_card_excel(data):
         cell.alignment = ALIGN_CENTER if 10 <= c <= 15 else ALIGN_LEFT
     _apply_box_border(ws, 1, 1, 18, 1)
 
-    # --- 2〜4行目: 基本情報 ---
+    # --- 2〜4行目: 基本情報（2列目=100mm相当[C-K]、4列目=50mm相当[N-R]、書名太字） ---
     info_rows = [
-        (2, "書名", _safe_str(data.get("field-13")), "出版社", _safe_str(data.get("field-8"))),
-        (3, "ISBN", _safe_str(data.get("field-93")), "印刷所", _safe_str(data.get("field-14"))),
+        (2, "書名", _safe_str(data.get("field-13")), "出版社", _safe_str(data.get("field-8")), True),
+        (3, "ISBN", _safe_str(data.get("field-93")), "印刷所", _safe_str(data.get("field-14")), False),
         (
             4,
             "種別/刷数",
             f"{_safe_str(data.get('field-19'))} / {_safe_str(data.get('field-28'))}刷 (回:{_safe_str(data.get('field-29'))})",
             "定価",
             f"¥{_safe_str(data.get('field-20'))}",
+            False,
         ),
     ]
 
-    for r, l_lbl, l_val, r_lbl, r_val in info_rows:
+    for r, l_lbl, l_val, r_lbl, r_val, is_l_val_bold in info_rows:
         ws.row_dimensions[r].height = 17.5
-        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
-        ws.merge_cells(start_row=r, start_column=4, end_row=r, end_column=9)
-        ws.merge_cells(start_row=r, start_column=10, end_row=r, end_column=12)
-        ws.merge_cells(start_row=r, start_column=13, end_row=r, end_column=18)
+        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=2)
+        ws.merge_cells(start_row=r, start_column=3, end_row=r, end_column=11)
+        ws.merge_cells(start_row=r, start_column=12, end_row=r, end_column=13)
+        ws.merge_cells(start_row=r, start_column=14, end_row=r, end_column=18)
 
         ws.cell(row=r, column=1, value=l_lbl)
-        ws.cell(row=r, column=4, value=l_val)
-        ws.cell(row=r, column=10, value=r_lbl)
-        ws.cell(row=r, column=13, value=r_val)
+        ws.cell(row=r, column=3, value=l_val)
+        ws.cell(row=r, column=12, value=r_lbl)
+        ws.cell(row=r, column=14, value=r_val)
 
         for c in range(1, 19):
             cell = ws.cell(row=r, column=c)
-            is_label = (1 <= c <= 3) or (10 <= c <= 12)
-            cell.font = FONT_BOLD if is_label else FONT_NORMAL
-            cell.fill = FILL_LABEL_BG if is_label else FILL_WHITE
+            is_label = (1 <= c <= 2) or (12 <= c <= 13)
+            if is_label:
+                cell.font = FONT_BOLD
+                cell.fill = FILL_LABEL_BG
+            else:
+                is_val_bold = is_l_val_bold and (3 <= c <= 11)
+                cell.font = FONT_BOLD if is_val_bold else FONT_NORMAL
+                cell.fill = FILL_WHITE
             cell.alignment = ALIGN_LEFT
             cell.border = BORDER_GRID
 
@@ -387,7 +399,7 @@ def generate_progress_card_excel(data):
     # --- 10行目: 余白 ---
     ws.row_dimensions[10].height = 4
 
-    # --- 11〜16行目: 表①（1〜54 数字マス目：上5mm=14.2pt 番号 / 下7.5mm=21.3pt 手書き空欄） ---
+    # --- 11〜16行目: 表①（1〜54 数字マス目） ---
     num_ranges = [range(1, 19), range(19, 37), range(37, 55)]
     curr_t1_r = 11
     for rng in num_ranges:
@@ -415,7 +427,7 @@ def generate_progress_card_excel(data):
     # --- 17行目: 余白 ---
     ws.row_dimensions[17].height = 4
 
-    # --- 18〜27行目: 表②（1行25.0mm：上段12.5mm(35.4pt) 年月日4文字空白 ＋ 下段12.5mm(35.4pt) 「部」右寄せ手入力） ---
+    # --- 18〜27行目: 表② ---
     memo_labels = ["丁合", "無線", "化粧", "仕上", "見本"]
     excel_date_4char = "       年        月       日"
     curr_t2_r = 18
@@ -488,7 +500,7 @@ def generate_progress_card_excel(data):
     ws.row_breaks.append(Break(id=30))
 
     # ==========================================
-    # 2頁目 (31行目〜): 特記事項 ＋ 工程チェックリスト ＋ 下部注意事項(3cm) ＋ フッター右寄せ
+    # 2頁目 (31行目〜)
     # ==========================================
     ws.row_dimensions[31].height = 18
     ws.merge_cells("A31:R31")
@@ -633,10 +645,11 @@ def generate_progress_card_pdf(data):
     story.append(header_table)
     story.append(Spacer(1, 0.8 * mm))
 
+    # 2列目=100mm、4列目=50mm（合計194mm）、書名は太字
     info_top_data = [
         [
             Paragraph("書名", bold_style),
-            Paragraph(_safe_str(data.get('field-13')), normal_style),
+            Paragraph(f"<b>{_safe_str(data.get('field-13'))}</b>", bold_style),
             Paragraph("出版社", bold_style),
             Paragraph(_safe_str(data.get('field-8')), normal_style),
         ],
@@ -653,7 +666,7 @@ def generate_progress_card_pdf(data):
             Paragraph(f"¥{_safe_str(data.get('field-20'))}", normal_style),
         ],
     ]
-    info_top_table = Table(info_top_data, colWidths=[22*mm, 72*mm, 22*mm, 78*mm], rowHeights=[5.5*mm] * 3)
+    info_top_table = Table(info_top_data, colWidths=[22*mm, 100*mm, 22*mm, 50*mm], rowHeights=[5.5*mm] * 3)
     info_top_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (0,-1), colors.whitesmoke),
