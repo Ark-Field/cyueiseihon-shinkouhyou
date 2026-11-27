@@ -166,7 +166,6 @@ MED_SIDE = Side(style="medium", color="111827")
 DOUBLE_SIDE = Side(style="double", color="111827")
 
 BORDER_GRID = Border(left=THIN_SIDE, right=THIN_SIDE, top=THIN_SIDE, bottom=THIN_SIDE)
-BORDER_CHK_HEADER = Border(left=THIN_SIDE, right=THIN_SIDE, top=THIN_SIDE, bottom=DOUBLE_SIDE)
 
 ALIGN_LEFT = Alignment(horizontal="left", vertical="center", wrap_text=True)
 ALIGN_TOP_LEFT = Alignment(horizontal="left", vertical="top", wrap_text=True)
@@ -187,12 +186,17 @@ def _configure_a4_portrait_print(ws, fit_h=2, margin_lr=0.2, margin_tb=0.15):
     ws.page_margins.bottom = margin_tb
 
 
-def _apply_box_border(ws, min_col, min_row, max_col, max_row):
+def _apply_box_border(ws, min_col, min_row, max_col, max_row, double_bottom_row=None):
     for r in range(min_row, max_row + 1):
         for c in range(min_col, max_col + 1):
             cell = ws.cell(row=r, column=c)
             top = MED_SIDE if r == min_row else THIN_SIDE
-            bottom = MED_SIDE if r == max_row else THIN_SIDE
+            if double_bottom_row is not None and r == double_bottom_row:
+                bottom = DOUBLE_SIDE
+            elif r == max_row:
+                bottom = MED_SIDE
+            else:
+                bottom = THIN_SIDE
             left = MED_SIDE if c == min_col else THIN_SIDE
             right = MED_SIDE if c == max_col else THIN_SIDE
             cell.border = Border(top=top, bottom=bottom, left=left, right=right)
@@ -452,7 +456,6 @@ def generate_progress_card_excel(data):
         ws.cell(row=r_top, column=8, value="申送り")
 
         if lbl == "見本":
-            # 下段(C-G)を2列分割：左(C-D)「担当：」上左寄せ / 右(E-G)「部\n□原本」2行右寄せ
             ws.merge_cells(start_row=r_bot, start_column=3, end_row=r_bot, end_column=4)
             ws.merge_cells(start_row=r_bot, start_column=5, end_row=r_bot, end_column=7)
             ws.cell(row=r_bot, column=3, value="担当：")
@@ -522,7 +525,7 @@ def generate_progress_card_excel(data):
     # ==========================================
     # 2頁目 (31行目〜)
     # ==========================================
-    ws.row_dimensions[31].height = 18
+    ws.row_dimensions[31].height = 17
     ws.merge_cells("A31:R31")
     ws["A31"] = "特記事項 / 申し送り欄（フリー手書きスペース）"
     for c in range(1, 19):
@@ -532,7 +535,7 @@ def generate_progress_card_excel(data):
         cell.alignment = ALIGN_LEFT
         cell.border = BORDER_GRID
 
-    ws.row_dimensions[32].height = 46
+    ws.row_dimensions[32].height = 38
     ws.merge_cells("A32:R32")
     ws["A32"] = _safe_str(data.get("field-45"), "特記事項なし")
     for c in range(1, 19):
@@ -542,18 +545,18 @@ def generate_progress_card_excel(data):
         cell.alignment = ALIGN_TOP_LEFT
         cell.border = BORDER_GRID
 
-    ws.row_dimensions[33].height = 5
+    ws.row_dimensions[33].height = 8
 
-    # 2頁目チェックリスト（全4か所：全角4文字空け・中央寄せ）
+    # 2頁目チェックリスト（4項目を独立枠として描画・各枠間に8mm=22.7pt間隔・各枠外周太線）
     curr_r = 34
-    for sec_title, items in CHECKLIST_SECTIONS:
+    for sec_idx, (sec_title, items) in enumerate(CHECKLIST_SECTIONS):
         start_r = curr_r
         end_r = curr_r + len(items)
 
         ws.merge_cells(start_row=start_r, start_column=1, end_row=end_r, end_column=3)
         ws.cell(row=start_r, column=1, value=sec_title)
 
-        ws.row_dimensions[start_r].height = 31.5
+        ws.row_dimensions[start_r].height = 26.5
         ws.merge_cells(start_row=start_r, start_column=4, end_row=start_r, end_column=18)
         ws.cell(
             row=start_r,
@@ -566,11 +569,10 @@ def generate_progress_card_excel(data):
             cell.font = FONT_BOLD if 1 <= c <= 3 else FONT_CHK
             cell.fill = FILL_LABEL_BG if 1 <= c <= 3 else FILL_WHITE
             cell.alignment = ALIGN_CENTER
-            cell.border = BORDER_CHK_HEADER
 
         for idx, item_text in enumerate(items):
             r = start_r + 1 + idx
-            ws.row_dimensions[r].height = 28.0
+            ws.row_dimensions[r].height = 22.0
             ws.merge_cells(start_row=r, start_column=4, end_row=r, end_column=13)
             ws.merge_cells(start_row=r, start_column=14, end_row=r, end_column=18)
 
@@ -587,14 +589,20 @@ def generate_progress_card_excel(data):
                     cell.font = FONT_CHK
                     cell.fill = FILL_WHITE
                     cell.alignment = ALIGN_LEFT
-                cell.border = BORDER_GRID
+
+        # 各独立枠の外周を太線で囲む（ヘッダー下線は二重線）
+        _apply_box_border(ws, 1, start_r, 18, end_r, double_bottom_row=start_r)
 
         curr_r = end_r + 1
+        # 4枠の間に8mm（=22.7pt）間隔を空ける
+        if sec_idx < len(CHECKLIST_SECTIONS) - 1:
+            ws.row_dimensions[curr_r].height = 22.7
+            curr_r += 1
 
-    # --- 2頁目 下部 注意事項（高さ 3cm = 85.0pt） ---
-    ws.row_dimensions[curr_r].height = 5
+    # --- 2頁目 下部 注意事項 ---
+    ws.row_dimensions[curr_r].height = 8
     note_r = curr_r + 1
-    ws.row_dimensions[note_r].height = 85.0
+    ws.row_dimensions[note_r].height = 68.0
     ws.merge_cells(start_row=note_r, start_column=1, end_row=note_r, end_column=3)
     ws.merge_cells(start_row=note_r, start_column=4, end_row=note_r, end_column=18)
     ws.cell(row=note_r, column=1, value="注意事項")
@@ -642,7 +650,7 @@ def generate_progress_card_pdf(data):
     sample_left_style = ParagraphStyle('SampleLeft', fontName=DEFAULT_FONT, fontSize=7.0, leading=8.5, alignment=0)
     sample_right_2line_style = ParagraphStyle('SampleRight2Line', fontName=BOLD_FONT, fontSize=7.0, leading=8.8, alignment=2)
     footer_right_style = ParagraphStyle('FooterRight', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.0, alignment=2)
-    chk_style = ParagraphStyle('ChkItem', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5)
+    chk_style = ParagraphStyle('ChkItem', fontName=DEFAULT_FONT, fontSize=7.2, leading=8.8)
 
     story = []
 
@@ -801,7 +809,6 @@ def generate_progress_card_pdf(data):
     ]
     cur_t2 = 0
     for lbl in memo_labels:
-        # 上段：日付欄（1列目〜2列目を結合して中央寄せ）
         t2_rows.append([
             Paragraph(f"<b>{lbl}</b>", bold_center_style),
             DATE_LABEL_P1,
@@ -820,7 +827,6 @@ def generate_progress_card_pdf(data):
         t2_style_cmds.append(('ALIGN', (3, cur_t2), (3, cur_t2), 'LEFT'))
         cur_t2 += 1
 
-        # 下段：「見本」は2列分割（左: 担当： 上左寄せ / 右: 部<br/>□原本 2行右寄せ）、他は「部」右寄せ
         if lbl == "見本":
             t2_rows.append([
                 Paragraph("", bold_center_style),
@@ -887,74 +893,71 @@ def generate_progress_card_pdf(data):
         [Paragraph("特記事項 / 申し送り欄（フリー手書きスペース）", bold_style)],
         [Paragraph(_safe_str(data.get('field-45'), '特記事項なし'), normal_style)]
     ]
-    note_table = Table(note_data, colWidths=[194*mm], rowHeights=[5.5*mm, 15.0*mm])
+    note_table = Table(note_data, colWidths=[194*mm], rowHeights=[5.0*mm, 12.0*mm])
     note_table.setStyle(TableStyle([
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('BACKGROUND', (0,0), (0,0), colors.whitesmoke),
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
-        ('PADDING', (0,0), (-1,-1), 1.8),
+        ('PADDING', (0,0), (-1,-1), 1.5),
     ]))
     story.append(note_table)
-    story.append(Spacer(1, 1.2 * mm))
+    story.append(Spacer(1, 2.0 * mm))
 
-    # 2頁目チェックリスト（全4か所：全角4文字空け・中央寄せ）
-    chk_rows = []
-    chk_style_cmds = [
-        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 1.8),
-    ]
-    row_heights = []
-    cur_idx = 0
+    # 2頁目チェックリスト（4項目を独立枠として描画・各枠間に8mm間隔・各枠外周太線）
     work_date_block = f"{DATE_LABEL_4CHAR}\n担当者印："
-
-    for sec_title, items in CHECKLIST_SECTIONS:
-        start_idx = cur_idx
-        end_idx = cur_idx + len(items)
-
-        chk_rows.append([
-            Paragraph(f"<b>{sec_title}</b>", bold_style),
-            work_date_block,
-            "",
-        ])
-        row_heights.append(11.0 * mm)
-        chk_style_cmds.append(('BACKGROUND', (0, cur_idx), (0, cur_idx), colors.whitesmoke))
-        chk_style_cmds.append(('ALIGN', (0, cur_idx), (0, cur_idx), 'CENTER'))
-        chk_style_cmds.append(('SPAN', (1, cur_idx), (2, cur_idx)))
-        chk_style_cmds.append(('FONTNAME', (1, cur_idx), (2, cur_idx), DEFAULT_FONT))
-        chk_style_cmds.append(('FONTSIZE', (1, cur_idx), (2, cur_idx), 7.5))
-        chk_style_cmds.append(('LEADING', (1, cur_idx), (2, cur_idx), 10.5))
-        chk_style_cmds.append(('ALIGN', (1, cur_idx), (2, cur_idx), 'CENTER'))
-        chk_style_cmds.append(('LINEBELOW', (1, cur_idx), (2, cur_idx), 1.0, colors.black))
-        cur_idx += 1
+    for sec_idx, (sec_title, items) in enumerate(CHECKLIST_SECTIONS):
+        sec_rows = [
+            [
+                Paragraph(f"<b>{sec_title}</b>", bold_style),
+                work_date_block,
+                "",
+            ]
+        ]
+        sec_heights = [9.2 * mm]
+        sec_style_cmds = [
+            ('BOX', (0, 0), (-1, -1), 1.6, colors.black),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('PADDING', (0, 0), (-1, -1), 1.3),
+            ('BACKGROUND', (0, 0), (0, -1), colors.whitesmoke),
+            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+            ('SPAN', (1, 0), (2, 0)),
+            ('FONTNAME', (1, 0), (2, 0), DEFAULT_FONT),
+            ('FONTSIZE', (1, 0), (2, 0), 7.2),
+            ('LEADING', (1, 0), (2, 0), 9.5),
+            ('ALIGN', (1, 0), (2, 0), 'CENTER'),
+            ('LINEBELOW', (1, 0), (2, 0), 1.0, colors.black),
+        ]
 
         for item_text in items:
-            chk_rows.append([
+            sec_rows.append([
                 Paragraph("", bold_style),
                 Paragraph(item_text, chk_style),
                 Paragraph("", chk_style),
             ])
-            row_heights.append(9.6 * mm)
-            chk_style_cmds.append(('BACKGROUND', (0, cur_idx), (0, cur_idx), colors.whitesmoke))
-            chk_style_cmds.append(('ALIGN', (0, cur_idx), (0, cur_idx), 'CENTER'))
-            cur_idx += 1
+            sec_heights.append(8.0 * mm)
 
-        chk_style_cmds.append(('SPAN', (0, start_idx), (0, end_idx)))
+        sec_style_cmds.append(('SPAN', (0, 0), (0, len(items))))
 
-    chk_table = Table(chk_rows, colWidths=[24*mm, 118*mm, 52*mm], rowHeights=row_heights)
-    chk_table.setStyle(TableStyle(chk_style_cmds))
-    story.append(chk_table)
-    story.append(Spacer(1, 1.2 * mm))
+        sec_table = Table(sec_rows, colWidths=[24*mm, 118*mm, 52*mm], rowHeights=sec_heights)
+        sec_table.setStyle(TableStyle(sec_style_cmds))
+        story.append(sec_table)
+
+        # 各独立枠の間に8mm間隔を空ける
+        if sec_idx < len(CHECKLIST_SECTIONS) - 1:
+            story.append(Spacer(1, 8.0 * mm))
+
+    story.append(Spacer(1, 2.0 * mm))
 
     p2_note_table = Table(
         [[Paragraph("<b>注意事項:</b>", bold_style)]],
         colWidths=[194 * mm],
-        rowHeights=[30.0 * mm]
+        rowHeights=[22.0 * mm]
     )
     p2_note_table.setStyle(TableStyle([
         ('BOX', (0,0), (-1,-1), 0.5, colors.black),
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
-        ('PADDING', (0,0), (-1,-1), 2.5),
+        ('PADDING', (0,0), (-1,-1), 2.0),
     ]))
     story.append(p2_note_table)
     story.append(Spacer(1, 0.8 * mm))
