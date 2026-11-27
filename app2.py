@@ -61,7 +61,7 @@ else:
     BOLD_FONT = 'Helvetica-Bold'
 
 # ==========================================
-# 共通データ定義（台割内訳・2頁目チェックリスト）
+# 共通データ定義（台割内訳・2頁目チェックリスト・日付フォーマット）
 # ==========================================
 CHECKLIST_SECTIONS = [
     (
@@ -100,6 +100,10 @@ CHECKLIST_SECTIONS = [
         ],
     ),
 ]
+
+# 全9か所共通：日付：＋全角4文字空け＋年＋全角4文字空け＋月＋全角4文字空け＋日
+SP4 = "\u3000" * 4
+DATE_LABEL_4CHAR = f"日付：{SP4}年{SP4}月{SP4}日"
 
 
 def _safe_str(val, default=""):
@@ -225,10 +229,10 @@ def generate_progress_card_excel(data):
 
     # 2〜4行目: 1列目(A-B)=22mm相当, 2列目(C-K)=100mm相当, 3列目(L-M)=22mm相当, 4列目(N-R)=50mm相当
     col_widths_18 = [
-        4.25, 21.3,                          # 1列目相当 (A-B)
+        4.25, 21.3,                                            # 1列目相当 (A-B)
         12.9, 12.9, 12.9, 12.9, 12.9, 12.9, 12.9, 12.9, 12.9,  # 2列目相当 (C-K: 100mm比率)
-        12.75, 12.75,                        # 3列目相当 (L-M)
-        11.6, 11.6, 11.6, 11.6, 11.6,        # 4列目相当 (N-R: 50mm比率)
+        12.75, 12.75,                                          # 3列目相当 (L-M)
+        11.6, 11.6, 11.6, 11.6, 11.6,                          # 4列目相当 (N-R: 50mm比率)
     ]
     for idx, w in enumerate(col_widths_18, start=1):
         ws.column_dimensions[get_column_letter(idx)].width = w
@@ -427,9 +431,8 @@ def generate_progress_card_excel(data):
     # --- 17行目: 余白 ---
     ws.row_dimensions[17].height = 4
 
-    # --- 18〜27行目: 表② ---
+    # --- 18〜27行目: 表②（全5か所：中央寄せ「日付：    年    月    日」） ---
     memo_labels = ["丁合", "無線", "化粧", "仕上", "見本"]
-    excel_date_4char = "       年        月       日"
     curr_t2_r = 18
     for lbl in memo_labels:
         r_top = curr_t2_r
@@ -444,7 +447,7 @@ def generate_progress_card_excel(data):
         ws.merge_cells(start_row=r_bot, start_column=3, end_row=r_bot, end_column=7)
 
         ws.cell(row=r_top, column=1, value=lbl)
-        ws.cell(row=r_top, column=3, value=excel_date_4char)
+        ws.cell(row=r_top, column=3, value=DATE_LABEL_4CHAR)
         ws.cell(row=r_bot, column=3, value="部")
         ws.cell(row=r_top, column=8, value="申送り")
 
@@ -458,7 +461,7 @@ def generate_progress_card_excel(data):
                 elif 3 <= c <= 7:
                     if r_cur == r_top:
                         cell.font = FONT_SMALL
-                        cell.alignment = ALIGN_LEFT
+                        cell.alignment = ALIGN_CENTER
                     else:
                         cell.font = FONT_BOLD
                         cell.alignment = ALIGN_RIGHT
@@ -524,6 +527,7 @@ def generate_progress_card_excel(data):
 
     ws.row_dimensions[33].height = 5
 
+    # 2頁目チェックリスト（全4か所：日付行は中央寄せ「日付：    年    月    日」、下に「担当者印：」左寄せ）
     curr_r = 34
     for sec_title, items in CHECKLIST_SECTIONS:
         start_r = curr_r
@@ -537,14 +541,14 @@ def generate_progress_card_excel(data):
         ws.cell(
             row=start_r,
             column=4,
-            value=f"作業日：{excel_date_4char}\n担当者印：",
+            value=f"{DATE_LABEL_4CHAR}\n担当者印：",
         )
 
         for c in range(1, 19):
             cell = ws.cell(row=start_r, column=c)
             cell.font = FONT_BOLD if 1 <= c <= 3 else FONT_CHK
             cell.fill = FILL_LABEL_BG if 1 <= c <= 3 else FILL_WHITE
-            cell.alignment = ALIGN_CENTER if 1 <= c <= 3 else ALIGN_LEFT
+            cell.alignment = ALIGN_CENTER
             cell.border = BORDER_CHK_HEADER
 
         for idx, item_text in enumerate(items):
@@ -622,7 +626,6 @@ def generate_progress_card_pdf(data):
     chk_style = ParagraphStyle('ChkItem', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5)
 
     story = []
-    nbsp4 = "&nbsp;&nbsp;&nbsp;&nbsp;"
 
     # --- 1頁目 ---
     header_data = [
@@ -769,9 +772,8 @@ def generate_progress_card_pdf(data):
     story.append(num_grid_table)
     story.append(Spacer(1, 1.0 * mm))
 
-    # --- 表② ---
+    # --- 表②（全5か所：素の文字列＋FONT指定＋ALIGN CENTER で全角4文字空けを確実描画） ---
     memo_labels = ["丁合", "無線", "化粧", "仕上", "見本"]
-    date_4char_blank = f"{nbsp4}  年{nbsp4}  月{nbsp4}  日"
     t2_rows = []
     t2_heights = []
     t2_style_cmds = [
@@ -780,16 +782,19 @@ def generate_progress_card_pdf(data):
     ]
     cur_t2 = 0
     for lbl in memo_labels:
+        # 素の文字列で渡すことでReportLabのHTMLスペース圧縮を回避
         t2_rows.append([
             Paragraph(f"<b>{lbl}</b>", bold_center_style),
-            Paragraph(date_4char_blank, normal_style),
+            DATE_LABEL_4CHAR,
             Paragraph("申送り", normal_style),
         ])
         t2_heights.append(12.5 * mm)
         t2_style_cmds.append(('BACKGROUND', (0, cur_t2), (0, cur_t2), colors.whitesmoke))
         t2_style_cmds.append(('VALIGN', (0, cur_t2), (0, cur_t2), 'MIDDLE'))
+        t2_style_cmds.append(('FONTNAME', (1, cur_t2), (1, cur_t2), DEFAULT_FONT))
+        t2_style_cmds.append(('FONTSIZE', (1, cur_t2), (1, cur_t2), 6.2))
         t2_style_cmds.append(('VALIGN', (1, cur_t2), (1, cur_t2), 'MIDDLE'))
-        t2_style_cmds.append(('ALIGN', (1, cur_t2), (1, cur_t2), 'LEFT'))
+        t2_style_cmds.append(('ALIGN', (1, cur_t2), (1, cur_t2), 'CENTER'))
         t2_style_cmds.append(('VALIGN', (2, cur_t2), (2, cur_t2), 'TOP'))
         t2_style_cmds.append(('ALIGN', (2, cur_t2), (2, cur_t2), 'LEFT'))
         cur_t2 += 1
@@ -853,6 +858,7 @@ def generate_progress_card_pdf(data):
     story.append(note_table)
     story.append(Spacer(1, 1.2 * mm))
 
+    # 2頁目チェックリスト（全4か所：素の文字列2行＋FONT指定＋ALIGN CENTER で全角4文字空けを確実描画）
     chk_rows = []
     chk_style_cmds = [
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
@@ -861,7 +867,7 @@ def generate_progress_card_pdf(data):
     ]
     row_heights = []
     cur_idx = 0
-    work_date_4char = f"作業日：{nbsp4}  年{nbsp4}  月{nbsp4}  日<br/>担当者印："
+    work_date_block = f"{DATE_LABEL_4CHAR}\n担当者印："
 
     for sec_title, items in CHECKLIST_SECTIONS:
         start_idx = cur_idx
@@ -869,12 +875,17 @@ def generate_progress_card_pdf(data):
 
         chk_rows.append([
             Paragraph(f"<b>{sec_title}</b>", bold_style),
-            Paragraph(work_date_4char, chk_style),
-            Paragraph("", chk_style),
+            work_date_block,
+            "",
         ])
         row_heights.append(11.0 * mm)
         chk_style_cmds.append(('BACKGROUND', (0, cur_idx), (0, cur_idx), colors.whitesmoke))
         chk_style_cmds.append(('ALIGN', (0, cur_idx), (0, cur_idx), 'CENTER'))
+        chk_style_cmds.append(('SPAN', (1, cur_idx), (2, cur_idx)))
+        chk_style_cmds.append(('FONTNAME', (1, cur_idx), (2, cur_idx), DEFAULT_FONT))
+        chk_style_cmds.append(('FONTSIZE', (1, cur_idx), (2, cur_idx), 7.5))
+        chk_style_cmds.append(('LEADING', (1, cur_idx), (2, cur_idx), 10.5))
+        chk_style_cmds.append(('ALIGN', (1, cur_idx), (2, cur_idx), 'CENTER'))
         chk_style_cmds.append(('LINEBELOW', (1, cur_idx), (2, cur_idx), 1.0, colors.black))
         cur_idx += 1
 
