@@ -434,7 +434,7 @@ def generate_progress_card_excel(data):
     # --- 17行目: 余白 ---
     ws.row_dimensions[17].height = 4
 
-    # --- 18〜27行目: 表②（1P目5か所：「年」の1文字減らした日付スペース・中央寄せ／「見本」下段は2列分割） ---
+    # --- 18〜27行目: 表②（1P目5か所：「年」の1文字減らした日付スペース・中央寄せ／「見本」下段は担当を上左寄せ・部／□原本を2行右寄せ） ---
     memo_labels = ["丁合", "無線", "化粧", "仕上", "見本"]
     curr_t2_r = 18
     for lbl in memo_labels:
@@ -452,11 +452,11 @@ def generate_progress_card_excel(data):
         ws.cell(row=r_top, column=8, value="申送り")
 
         if lbl == "見本":
-            # 下段(C-G)を2列に分割：左(C-D)「担当：」左寄せ / 右(E-G)「部 □原本」右寄せ
+            # 下段(C-G)を2列分割：左(C-D)「担当：」上左寄せ / 右(E-G)「部\n□原本」2行右寄せ
             ws.merge_cells(start_row=r_bot, start_column=3, end_row=r_bot, end_column=4)
             ws.merge_cells(start_row=r_bot, start_column=5, end_row=r_bot, end_column=7)
             ws.cell(row=r_bot, column=3, value="担当：")
-            ws.cell(row=r_bot, column=5, value="部 □原本")
+            ws.cell(row=r_bot, column=5, value="部\n□原本")
         else:
             ws.merge_cells(start_row=r_bot, start_column=3, end_row=r_bot, end_column=7)
             ws.cell(row=r_bot, column=3, value="部")
@@ -475,7 +475,7 @@ def generate_progress_card_excel(data):
                     elif lbl == "見本":
                         if 3 <= c <= 4:
                             cell.font = FONT_SMALL
-                            cell.alignment = ALIGN_LEFT
+                            cell.alignment = ALIGN_TOP_LEFT
                         else:
                             cell.font = FONT_BOLD
                             cell.alignment = ALIGN_RIGHT
@@ -639,6 +639,8 @@ def generate_progress_card_pdf(data):
     center_style = ParagraphStyle('CardCenter', fontName=DEFAULT_FONT, fontSize=7, leading=8.5, alignment=1)
     bold_center_style = ParagraphStyle('CardBoldCenter', fontName=BOLD_FONT, fontSize=7, leading=8.5, alignment=1)
     right_bold_style = ParagraphStyle('CardRightBold', fontName=BOLD_FONT, fontSize=7.5, leading=9.0, alignment=2)
+    sample_left_style = ParagraphStyle('SampleLeft', fontName=DEFAULT_FONT, fontSize=7.0, leading=8.5, alignment=0)
+    sample_right_2line_style = ParagraphStyle('SampleRight2Line', fontName=BOLD_FONT, fontSize=7.0, leading=8.8, alignment=2)
     footer_right_style = ParagraphStyle('FooterRight', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.0, alignment=2)
     chk_style = ParagraphStyle('ChkItem', fontName=DEFAULT_FONT, fontSize=7.5, leading=9.5)
 
@@ -789,8 +791,7 @@ def generate_progress_card_pdf(data):
     story.append(num_grid_table)
     story.append(Spacer(1, 1.0 * mm))
 
-    # --- 表②（1P目5か所：「年」の1文字減らした日付スペース・中央寄せ／「見本」下段は2列分割） ---
-    # 3列構成 [工程名(18mm), 日付/部数左枠(18mm), 日付/部数右枠(20mm), 申送り(138mm)]
+    # --- 表②（1P目5か所：「年」の1文字減らした日付スペース・中央寄せ／「見本」下段は担当を上左寄せ・部／□原本を2行右寄せ） ---
     memo_labels = ["丁合", "無線", "化粧", "仕上", "見本"]
     t2_rows = []
     t2_heights = []
@@ -819,15 +820,15 @@ def generate_progress_card_pdf(data):
         t2_style_cmds.append(('ALIGN', (3, cur_t2), (3, cur_t2), 'LEFT'))
         cur_t2 += 1
 
-        # 下段：「見本」のみ2列分割（左: 担当： 左寄せ / 右: 部 □原本 右寄せ）、他は「部」右寄せ
+        # 下段：「見本」は2列分割（左: 担当： 上左寄せ / 右: 部<br/>□原本 2行右寄せ）、他は「部」右寄せ
         if lbl == "見本":
             t2_rows.append([
                 Paragraph("", bold_center_style),
-                Paragraph("担当：", normal_style),
-                Paragraph("部 □原本", bold_style),
+                Paragraph("担当：", sample_left_style),
+                Paragraph("部<br/>□原本", sample_right_2line_style),
                 Paragraph("", normal_style),
             ])
-            t2_style_cmds.append(('VALIGN', (1, cur_t2), (1, cur_t2), 'MIDDLE'))
+            t2_style_cmds.append(('VALIGN', (1, cur_t2), (1, cur_t2), 'TOP'))
             t2_style_cmds.append(('ALIGN', (1, cur_t2), (1, cur_t2), 'LEFT'))
             t2_style_cmds.append(('VALIGN', (2, cur_t2), (2, cur_t2), 'MIDDLE'))
             t2_style_cmds.append(('ALIGN', (2, cur_t2), (2, cur_t2), 'RIGHT'))
@@ -846,7 +847,6 @@ def generate_progress_card_pdf(data):
         t2_style_cmds.append(('BACKGROUND', (0, cur_t2), (0, cur_t2), colors.whitesmoke))
         cur_t2 += 1
 
-        # 工程名・申送り欄を上下結合、日付/部数欄は上下分割線と中央縦線を引く
         t2_style_cmds.append(('SPAN', (0, cur_t2 - 2), (0, cur_t2 - 1)))
         t2_style_cmds.append(('SPAN', (3, cur_t2 - 2), (3, cur_t2 - 1)))
         t2_style_cmds.append(('LINEBELOW', (1, cur_t2 - 2), (2, cur_t2 - 2), 0.5, colors.grey))
