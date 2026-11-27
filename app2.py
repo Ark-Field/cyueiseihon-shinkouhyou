@@ -101,9 +101,12 @@ CHECKLIST_SECTIONS = [
     ),
 ]
 
-# 全9か所共通：日付：＋全角4文字空け＋年＋全角4文字空け＋月＋全角4文字空け＋日
 SP4 = "\u3000" * 4
+SP3 = "\u3000" * 3
+# 2頁目チェックリスト用（4か所）：全角4文字空け
 DATE_LABEL_4CHAR = f"日付：{SP4}年{SP4}月{SP4}日"
+# 1頁目表②用（5か所）：「年」の1文字分を3文字にしてはみ出し防止
+DATE_LABEL_P1 = f"日付：{SP4}年{SP3}月{SP4}日"
 
 
 def _safe_str(val, default=""):
@@ -431,7 +434,7 @@ def generate_progress_card_excel(data):
     # --- 17行目: 余白 ---
     ws.row_dimensions[17].height = 4
 
-    # --- 18〜27行目: 表②（全5か所：中央寄せ「日付：    年    月    日」） ---
+    # --- 18〜27行目: 表②（1P目5か所：「年」の1文字減らした日付スペース・中央寄せ／「見本」下段は2列分割） ---
     memo_labels = ["丁合", "無線", "化粧", "仕上", "見本"]
     curr_t2_r = 18
     for lbl in memo_labels:
@@ -444,12 +447,19 @@ def generate_progress_card_excel(data):
         ws.merge_cells(start_row=r_top, start_column=8, end_row=r_bot, end_column=18)
 
         ws.merge_cells(start_row=r_top, start_column=3, end_row=r_top, end_column=7)
-        ws.merge_cells(start_row=r_bot, start_column=3, end_row=r_bot, end_column=7)
-
         ws.cell(row=r_top, column=1, value=lbl)
-        ws.cell(row=r_top, column=3, value=DATE_LABEL_4CHAR)
-        ws.cell(row=r_bot, column=3, value="部")
+        ws.cell(row=r_top, column=3, value=DATE_LABEL_P1)
         ws.cell(row=r_top, column=8, value="申送り")
+
+        if lbl == "見本":
+            # 下段(C-G)を2列に分割：左(C-D)「担当：」左寄せ / 右(E-G)「部 □原本」右寄せ
+            ws.merge_cells(start_row=r_bot, start_column=3, end_row=r_bot, end_column=4)
+            ws.merge_cells(start_row=r_bot, start_column=5, end_row=r_bot, end_column=7)
+            ws.cell(row=r_bot, column=3, value="担当：")
+            ws.cell(row=r_bot, column=5, value="部 □原本")
+        else:
+            ws.merge_cells(start_row=r_bot, start_column=3, end_row=r_bot, end_column=7)
+            ws.cell(row=r_bot, column=3, value="部")
 
         for r_cur in (r_top, r_bot):
             for c in range(1, 19):
@@ -462,6 +472,13 @@ def generate_progress_card_excel(data):
                     if r_cur == r_top:
                         cell.font = FONT_SMALL
                         cell.alignment = ALIGN_CENTER
+                    elif lbl == "見本":
+                        if 3 <= c <= 4:
+                            cell.font = FONT_SMALL
+                            cell.alignment = ALIGN_LEFT
+                        else:
+                            cell.font = FONT_BOLD
+                            cell.alignment = ALIGN_RIGHT
                     else:
                         cell.font = FONT_BOLD
                         cell.alignment = ALIGN_RIGHT
@@ -527,7 +544,7 @@ def generate_progress_card_excel(data):
 
     ws.row_dimensions[33].height = 5
 
-    # 2頁目チェックリスト（全4か所：日付行は中央寄せ「日付：    年    月    日」、下に「担当者印：」左寄せ）
+    # 2頁目チェックリスト（全4か所：全角4文字空け・中央寄せ）
     curr_r = 34
     for sec_title, items in CHECKLIST_SECTIONS:
         start_r = curr_r
@@ -772,7 +789,8 @@ def generate_progress_card_pdf(data):
     story.append(num_grid_table)
     story.append(Spacer(1, 1.0 * mm))
 
-    # --- 表②（全5か所：素の文字列＋FONT指定＋ALIGN CENTER で全角4文字空けを確実描画） ---
+    # --- 表②（1P目5か所：「年」の1文字減らした日付スペース・中央寄せ／「見本」下段は2列分割） ---
+    # 3列構成 [工程名(18mm), 日付/部数左枠(18mm), 日付/部数右枠(20mm), 申送り(138mm)]
     memo_labels = ["丁合", "無線", "化粧", "仕上", "見本"]
     t2_rows = []
     t2_heights = []
@@ -782,39 +800,60 @@ def generate_progress_card_pdf(data):
     ]
     cur_t2 = 0
     for lbl in memo_labels:
-        # 素の文字列で渡すことでReportLabのHTMLスペース圧縮を回避
+        # 上段：日付欄（1列目〜2列目を結合して中央寄せ）
         t2_rows.append([
             Paragraph(f"<b>{lbl}</b>", bold_center_style),
-            DATE_LABEL_4CHAR,
+            DATE_LABEL_P1,
+            "",
             Paragraph("申送り", normal_style),
         ])
         t2_heights.append(12.5 * mm)
         t2_style_cmds.append(('BACKGROUND', (0, cur_t2), (0, cur_t2), colors.whitesmoke))
         t2_style_cmds.append(('VALIGN', (0, cur_t2), (0, cur_t2), 'MIDDLE'))
-        t2_style_cmds.append(('FONTNAME', (1, cur_t2), (1, cur_t2), DEFAULT_FONT))
-        t2_style_cmds.append(('FONTSIZE', (1, cur_t2), (1, cur_t2), 6.2))
-        t2_style_cmds.append(('VALIGN', (1, cur_t2), (1, cur_t2), 'MIDDLE'))
-        t2_style_cmds.append(('ALIGN', (1, cur_t2), (1, cur_t2), 'CENTER'))
-        t2_style_cmds.append(('VALIGN', (2, cur_t2), (2, cur_t2), 'TOP'))
-        t2_style_cmds.append(('ALIGN', (2, cur_t2), (2, cur_t2), 'LEFT'))
+        t2_style_cmds.append(('SPAN', (1, cur_t2), (2, cur_t2)))
+        t2_style_cmds.append(('FONTNAME', (1, cur_t2), (2, cur_t2), DEFAULT_FONT))
+        t2_style_cmds.append(('FONTSIZE', (1, cur_t2), (2, cur_t2), 6.2))
+        t2_style_cmds.append(('VALIGN', (1, cur_t2), (2, cur_t2), 'MIDDLE'))
+        t2_style_cmds.append(('ALIGN', (1, cur_t2), (2, cur_t2), 'CENTER'))
+        t2_style_cmds.append(('VALIGN', (3, cur_t2), (3, cur_t2), 'TOP'))
+        t2_style_cmds.append(('ALIGN', (3, cur_t2), (3, cur_t2), 'LEFT'))
         cur_t2 += 1
 
-        t2_rows.append([
-            Paragraph("", bold_center_style),
-            Paragraph("部", right_bold_style),
-            Paragraph("", normal_style),
-        ])
+        # 下段：「見本」のみ2列分割（左: 担当： 左寄せ / 右: 部 □原本 右寄せ）、他は「部」右寄せ
+        if lbl == "見本":
+            t2_rows.append([
+                Paragraph("", bold_center_style),
+                Paragraph("担当：", normal_style),
+                Paragraph("部 □原本", bold_style),
+                Paragraph("", normal_style),
+            ])
+            t2_style_cmds.append(('VALIGN', (1, cur_t2), (1, cur_t2), 'MIDDLE'))
+            t2_style_cmds.append(('ALIGN', (1, cur_t2), (1, cur_t2), 'LEFT'))
+            t2_style_cmds.append(('VALIGN', (2, cur_t2), (2, cur_t2), 'MIDDLE'))
+            t2_style_cmds.append(('ALIGN', (2, cur_t2), (2, cur_t2), 'RIGHT'))
+        else:
+            t2_rows.append([
+                Paragraph("", bold_center_style),
+                Paragraph("部", right_bold_style),
+                Paragraph("", right_bold_style),
+                Paragraph("", normal_style),
+            ])
+            t2_style_cmds.append(('SPAN', (1, cur_t2), (2, cur_t2)))
+            t2_style_cmds.append(('VALIGN', (1, cur_t2), (2, cur_t2), 'MIDDLE'))
+            t2_style_cmds.append(('ALIGN', (1, cur_t2), (2, cur_t2), 'RIGHT'))
+
         t2_heights.append(12.5 * mm)
         t2_style_cmds.append(('BACKGROUND', (0, cur_t2), (0, cur_t2), colors.whitesmoke))
-        t2_style_cmds.append(('VALIGN', (1, cur_t2), (1, cur_t2), 'MIDDLE'))
-        t2_style_cmds.append(('ALIGN', (1, cur_t2), (1, cur_t2), 'RIGHT'))
         cur_t2 += 1
 
+        # 工程名・申送り欄を上下結合、日付/部数欄は上下分割線と中央縦線を引く
         t2_style_cmds.append(('SPAN', (0, cur_t2 - 2), (0, cur_t2 - 1)))
-        t2_style_cmds.append(('SPAN', (2, cur_t2 - 2), (2, cur_t2 - 1)))
-        t2_style_cmds.append(('LINEBELOW', (1, cur_t2 - 2), (1, cur_t2 - 2), 0.5, colors.grey))
+        t2_style_cmds.append(('SPAN', (3, cur_t2 - 2), (3, cur_t2 - 1)))
+        t2_style_cmds.append(('LINEBELOW', (1, cur_t2 - 2), (2, cur_t2 - 2), 0.5, colors.grey))
+        if lbl == "見本":
+            t2_style_cmds.append(('LINEBEFORE', (2, cur_t2 - 1), (2, cur_t2 - 1), 0.5, colors.grey))
 
-    handwriting_table = Table(t2_rows, colWidths=[18*mm, 38*mm, 138*mm], rowHeights=t2_heights)
+    handwriting_table = Table(t2_rows, colWidths=[18*mm, 18*mm, 20*mm, 138*mm], rowHeights=t2_heights)
     handwriting_table.setStyle(TableStyle(t2_style_cmds))
     story.append(handwriting_table)
     story.append(Spacer(1, 1.0 * mm))
@@ -858,7 +897,7 @@ def generate_progress_card_pdf(data):
     story.append(note_table)
     story.append(Spacer(1, 1.2 * mm))
 
-    # 2頁目チェックリスト（全4か所：素の文字列2行＋FONT指定＋ALIGN CENTER で全角4文字空けを確実描画）
+    # 2頁目チェックリスト（全4か所：全角4文字空け・中央寄せ）
     chk_rows = []
     chk_style_cmds = [
         ('GRID', (0,0), (-1,-1), 0.5, colors.black),
